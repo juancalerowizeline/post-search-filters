@@ -80,7 +80,7 @@ export function Head({ showFilters, onToggleFilters, onRemoveChip, chips }) {
         <button className="btn btn--outline-icon" aria-label="More options">
           <DotsThreeVertical size={16} weight="bold" />
         </button>
-        <button className="btn btn--solid btn--small">Modify Search</button>
+        <button className="btn btn--solid btn--small">Modify<span className="hide-phone"> Search</span></button>
       </div>
 
       <a className="profile-link" href="#profile" onClick={(e) => e.preventDefault()}>

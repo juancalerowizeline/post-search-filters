@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { CaretUp, CaretDown, DownloadSimple, MagnifyingGlass, Prohibit, Check, Minus } from '@phosphor-icons/react'
+import { CaretUp, CaretDown, DownloadSimple, MagnifyingGlass, Prohibit, Check, Minus, X } from '@phosphor-icons/react'
 import {
   ARTICLES,
   DATE_RANGES,
@@ -367,7 +367,7 @@ function ExportMenu({ filters }) {
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <DownloadSimple size={16} /> Export
+        <DownloadSimple size={16} /> <span className="export__label">Export</span>
       </button>
       {open && (
         <div className="export__menu" role="menu" aria-label="Export">
@@ -382,8 +382,9 @@ function ExportMenu({ filters }) {
   )
 }
 
-export default function FilterPanel({ filters, dirty, setMedia, setRange, setBucket, setDist, setFacetValue, onReset, onApply }) {
+export default function FilterPanel({ filters, dirty, setMedia, setRange, setBucket, setDist, setFacetValue, onReset, onApply, onClose }) {
   const [collapsed, setCollapsed] = useState({})
+  const [sheetFull, setSheetFull] = useState(false) // phones: scrolling the sheet expands it to full height
   const [rangeExpanded, setRangeExpanded] = useState(false)
   // keep the picked range visible even if it lives under "Show more"
   const rangesShown =
@@ -401,11 +402,16 @@ export default function FilterPanel({ filters, dirty, setMedia, setRange, setBuc
   )
 
   return (
-    <aside className="filters" aria-label="Filters">
-      <div className="filters__scroll">
+    <aside className={`filters${sheetFull ? ' filters--full' : ''}`} aria-label="Filters">
+      <div className="filters__scroll" onScroll={(e) => setSheetFull(e.currentTarget.scrollTop > 0)}>
         <div className="filters__head">
           <span>Filters</span>
-          <ExportMenu filters={filters} />
+          <div className="filters__head-actions">
+            <ExportMenu filters={filters} />
+            <button className="filters__close" onClick={onClose} aria-label="Close filters">
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         <Group title="Media Types" collapsed={collapsed.media} onToggle={() => toggle('media')}>

@@ -8,6 +8,7 @@ import { Head, SmartSummary, Related, ResultsList, buildChips } from './componen
 // The keyword query lives in the header and filters live.
 const DEFAULT_FILTERS = { media: 'All', range: '6m', dist: null, bucket: null, facets: {} }
 const NARROW = '(max-width: 860px)'
+const PHONE = '(max-width: 600px)'
 
 // Order-independent snapshot used to compare filter states (ignores empty facet groups)
 const snapshot = (f) =>
@@ -40,6 +41,26 @@ export default function App() {
     mq.addEventListener('change', onChange)
     return () => mq.removeEventListener('change', onChange)
   }, [])
+
+  // Phones: the filters are a bottom sheet and the menu a drawer; lock the page behind them
+  const [phone, setPhone] = useState(() => window.matchMedia(PHONE).matches)
+  useEffect(() => {
+    const mq = window.matchMedia(PHONE)
+    const onChange = (e) => setPhone(e.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+  const overlay = phone && (showFilters || !navCollapsed)
+  useEffect(() => {
+    document.body.style.overflow = overlay ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [overlay])
+  const closeOverlays = () => {
+    setShowFilters(false)
+    setNavCollapsed(true)
+  }
 
   // Results and chips reflect only the APPLIED filters
   const results = useMemo(() => applyFilters(ARTICLES, { ...applied, query }), [applied, query])
@@ -81,7 +102,8 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header query={query} onQuery={setQuery} />
+      <Header query={query} onQuery={setQuery} onMenu={() => setNavCollapsed((c) => !c)} />
+      {overlay && <div className="scrim" onClick={closeOverlays} aria-hidden />}
       <div className="body">
         <LeftNav collapsed={navCollapsed} onToggle={() => setNavCollapsed((c) => !c)} />
         <main className="main">
@@ -97,6 +119,7 @@ export default function App() {
                 setFacetValue={setFacetValue}
                 onReset={reset}
                 onApply={apply}
+                onClose={() => setShowFilters(false)}
               />
             )}
             <div className="content" ref={resultsRef}>

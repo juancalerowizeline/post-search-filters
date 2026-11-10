@@ -12,12 +12,17 @@ import {
   Bell,
   CirclesFour,
   Gear,
+  List,
 } from '@phosphor-icons/react'
 import logo from '../assets/dow-jones.svg'
 
-export function Header({ query, onQuery }) {
+export function Header({ query, onQuery, onMenu }) {
+  const [searchOpen, setSearchOpen] = useState(false) // phones only: the search bar drops under the header
   return (
-    <header className="header">
+    <header className={`header${searchOpen ? ' header--search' : ''}`}>
+      <button className="icon-btn header__burger" aria-label="Menu" onClick={onMenu}>
+        <List size={24} />
+      </button>
       <div className="header__logo">
         <img src={logo} alt="Dow Jones" />
       </div>
@@ -32,16 +37,24 @@ export function Header({ query, onQuery }) {
         />
       </label>
       <div className="header__menu">
-        <button className="icon-btn" aria-label="Help & Support">
+        <button
+          className="icon-btn header__search-toggle"
+          aria-label="Search"
+          aria-expanded={searchOpen}
+          onClick={() => setSearchOpen((o) => !o)}
+        >
+          <MagnifyingGlass size={24} />
+        </button>
+        <button className="icon-btn icon-btn--help" aria-label="Help & Support">
           <Question size={24} />
         </button>
         <button className="icon-btn" aria-label="Notifications">
           <Bell size={24} />
         </button>
-        <button className="icon-btn" aria-label="App suite">
+        <button className="icon-btn icon-btn--wide" aria-label="App suite">
           <CirclesFour size={24} />
         </button>
-        <button className="icon-btn" aria-label="Settings">
+        <button className="icon-btn icon-btn--wide" aria-label="Settings">
           <Gear size={24} />
         </button>
       </div>
