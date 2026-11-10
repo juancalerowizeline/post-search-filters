@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   House,
   MagnifyingGlass,
@@ -13,11 +13,161 @@ import {
   CirclesFour,
   Gear,
   List,
+  X,
+  BookBookmark,
+  Globe,
+  CalendarBlank,
+  Translate,
+  Factory,
+  BuildingOffice,
+  FunnelSimple,
+  ClockCounterClockwise,
 } from '@phosphor-icons/react'
 import logo from '../assets/dow-jones.svg'
 
-export function Header({ query, onQuery, onMenu }) {
+const SEARCH_CHIPS = [
+  { id: 'source', label: 'All Source', icon: Globe },
+  { id: 'range', label: 'Date', icon: CalendarBlank },
+  { id: 'language', label: 'Language', icon: Translate },
+  { id: 'industry', label: 'Industry', icon: Factory },
+  { id: 'company', label: 'Company', icon: BuildingOffice },
+]
+const RECENT_SEARCHES = ['Tesla earnings Q4', 'NVIDIA AI chips', 'OpenAI valuation 2025']
+
+/** Expanded search (Figma "Search Bar v2"): input, filter shortcuts, recent/saved searches, selected filters. */
+function SearchPanel({ query, onQuery, chips, onRemoveChip, onReset, onOpenFilters, onClose }) {
+  const [tab, setTab] = useState('recent')
+  const [saved, setSaved] = useState(['Apple earnings', 'Tech regulation 2026'])
+  const [showLists, setShowLists] = useState(true)
+  const inputRef = useRef(null)
+  useEffect(() => inputRef.current?.focus(), [])
+
+  const selected = chips.filter((c) => c.kind !== 'query')
+  const active = (id) => chips.some((c) => (id === 'range' ? c.kind === 'range' : c.facet === id))
+  const rangeChip = chips.find((c) => c.kind === 'range')
+  const items = tab === 'recent' ? RECENT_SEARCHES : saved
+  const pick = (text) => {
+    onQuery(text)
+    onClose()
+  }
+  const save = () => {
+    const q = query.trim()
+    if (q && !saved.includes(q)) setSaved((l) => [q, ...l])
+    setTab('saved')
+  }
+
+  return (
+    <div className="search-panel" role="dialog" aria-label="Search">
+      <div className="search-panel__top">
+        <MagnifyingGlass size={20} className="icon search-panel__glass" />
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && onClose()}
+          placeholder="Search Dow Jones or type a Company, Industry, Region, Sources, Subject"
+          aria-label="Search"
+        />
+        <button className="icon-btn search-panel__clear" aria-label="Clear search" onClick={() => onQuery('')}>
+          <X size={16} />
+        </button>
+      </div>
+
+      <div className="search-panel__chips">
+        <button
+          className={`round-btn${showLists ? ' round-btn--on' : ''}`}
+          aria-label="Recent and saved searches"
+          aria-pressed={showLists}
+          onClick={() => setShowLists((v) => !v)}
+        >
+          <BookBookmark size={16} />
+        </button>
+        {SEARCH_CHIPS.map(({ id, label, icon: Icon }) => (
+          <span key={id} className={`sfilter${active(id) ? ' sfilter--on' : ''}`}>
+            <Icon size={16} />
+            {id === 'range' && rangeChip ? rangeChip.label : label}
+          </span>
+        ))}
+        <button className="round-btn search-panel__funnel" aria-label="Open filters" onClick={onOpenFilters}>
+          <FunnelSimple size={16} />
+        </button>
+      </div>
+
+      {showLists && (
+        <div className="search-panel__lists">
+          <div className="search-panel__tabs" role="tablist">
+            <button role="tab" aria-selected={tab === 'recent'} onClick={() => setTab('recent')}>
+              <ClockCounterClockwise size={16} /> Recent Searches
+            </button>
+            <button role="tab" aria-selected={tab === 'saved'} onClick={() => setTab('saved')}>
+              <BookmarkSimple size={16} /> Saved Searches
+            </button>
+          </div>
+          <ul className="search-panel__list">
+            {items.map((t) => (
+              <li key={t}>
+                <button onClick={() => pick(t)}>
+                  <ClockCounterClockwise size={16} /> {t}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="search-panel__foot">
+        <div className="search-panel__selected">
+          <strong>Selected Filters</strong>
+          <div className="search-panel__selected-chips">
+            {selected.length ? (
+              selected.map((c) => (
+                <button key={c.id} className="mini-chip" onClick={() => onRemoveChip(c)} aria-label={`Remove filter ${c.label}`}>
+                  {c.label}
+                  <X size={12} />
+                </button>
+              ))
+            ) : (
+              <span className="search-panel__none">No filters selected</span>
+            )}
+          </div>
+        </div>
+        <div className="search-panel__actions">
+          <button className="link-action" onClick={onReset}>
+            Reset Filters
+          </button>
+          <div className="search-panel__actions-right">
+            <button className="link-action" onClick={save}>
+              <BookmarkSimple size={16} /> Save Search
+            </button>
+            <button className="btn-outline" onClick={onClose}>
+              <MagnifyingGlass size={16} /> Search
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function Header({ onMenu, chips, onRemoveChip, onReset, onOpenFilters }) {
   const [searchOpen, setSearchOpen] = useState(false) // phones only: the search bar drops under the header
+  const [panelOpen, setPanelOpen] = useState(false)
+  // typing is local for now: it does not filter or search anything
+  const [query, onQuery] = useState('')
+  const wrapRef = useRef(null)
+
+  useEffect(() => {
+    if (!panelOpen) return
+    const onDown = (e) => !wrapRef.current?.contains(e.target) && setPanelOpen(false)
+    const onKey = (e) => e.key === 'Escape' && setPanelOpen(false)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [panelOpen])
+
   return (
     <header className={`header${searchOpen ? ' header--search' : ''}`}>
       <button className="icon-btn header__burger" aria-label="Menu" onClick={onMenu}>
@@ -26,16 +176,33 @@ export function Header({ query, onQuery, onMenu }) {
       <div className="header__logo">
         <img src={logo} alt="Dow Jones" />
       </div>
-      <label className="search-bar">
-        <MagnifyingGlass size={24} className="icon" />
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => onQuery(e.target.value)}
-          placeholder="Search Dow Jones or type a Company, Industry, Region, Sources, Subject"
-          aria-label="Search"
-        />
-      </label>
+      <div className="search" ref={wrapRef}>
+        <label className="search-bar">
+          <MagnifyingGlass size={24} className="icon" />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+            onFocus={() => setPanelOpen(true)}
+            placeholder="Search Dow Jones or type a Company, Industry, Region, Sources, Subject"
+            aria-label="Search"
+          />
+        </label>
+        {panelOpen && (
+          <SearchPanel
+            query={query}
+            onQuery={onQuery}
+            chips={chips}
+            onRemoveChip={onRemoveChip}
+            onReset={onReset}
+            onOpenFilters={() => {
+              setPanelOpen(false)
+              onOpenFilters()
+            }}
+            onClose={() => setPanelOpen(false)}
+          />
+        )}
+      </div>
       <div className="header__menu">
         <button
           className="icon-btn header__search-toggle"

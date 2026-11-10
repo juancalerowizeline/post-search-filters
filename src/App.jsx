@@ -102,7 +102,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <Header query={query} onQuery={setQuery} onMenu={() => setNavCollapsed((c) => !c)} />
+      <Header
+        onMenu={() => setNavCollapsed((c) => !c)}
+        chips={chips}
+        onRemoveChip={removeChip}
+        onReset={reset}
+        onOpenFilters={() => setShowFilters(true)}
+      />
       {overlay && <div className="scrim" onClick={closeOverlays} aria-hidden />}
       <div className="body">
         <LeftNav collapsed={navCollapsed} onToggle={() => setNavCollapsed((c) => !c)} />
