@@ -5,6 +5,11 @@ The filters in the left panel show/hide the headlines in the results list.
 
 Design source: Figma → `Post-Search-Filters (WIP)`, node `385:133901`.
 
+## Links
+
+- **Live prototype:** https://github.dowjones.net/pages/diegocaleroj/post-search-filters/
+- **Documentation (Confluence):** [Post-search Filters Sync](https://dowjones.atlassian.net/wiki/spaces/FAC2/pages/7031816380/Post-search+Filters+Sync)
+
 ## Run locally
 
 ```bash
@@ -21,14 +26,16 @@ npm run build    # production build in dist/
 - Counts next to each option are faceted (they reflect the other active filters).
 - **Volume by date** chart reacts to the filters (months outside the date range are dimmed).
 - Applied-filter chips are removable; "Hide/Show filters" toggles the panel; "Reset filters" restores the default.
-- Header search box filters by keyword; Related Searches fill it.
+- Header search opens the expanded search panel (recent/saved searches, selected filters). Typing there has no functionality yet; Related Searches still filter the list.
 - Sort (Relevance / Newest / Oldest), detailed/compact view, Export dropdown (pick a filter element → CSV with its values, counts and selection).
 - Responsive desktop layout; under 860px the nav auto-collapses and the filter panel becomes a slide-over.
 
 ## Deploy to GitHub Pages
 
-1. Create the repo on GitHub and push `main`.
-2. Settings → Pages → Source: **GitHub Actions**.
-3. `.github/workflows/deploy.yml` builds and publishes on every push to `main`.
+Pages is served from the `/docs` folder of `main`. Before every push run:
 
-The Vite `base` is `./`, so it works under any repo name without extra config.
+```bash
+npm run build:pages   # builds into docs/ (base './', works under any repo path)
+```
+
+and commit `docs/` together with the source changes.
