@@ -176,6 +176,7 @@ export function Header({ onMenu, chips, onRemoveChip, onReset, onOpenFilters }) 
       <div className="header__logo">
         <img src={logo} alt="Dow Jones" />
       </div>
+      {panelOpen && <div className="search-overlay" aria-hidden />}
       <div className="search" ref={wrapRef}>
         <label className="search-bar">
           <MagnifyingGlass size={24} className="icon" />

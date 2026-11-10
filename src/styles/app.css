@@ -1717,3 +1717,11 @@ button {
     flex-wrap: wrap;
   }
 }
+
+/* dims the page while the expanded search is open (black, 20%) */
+.search-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.2);
+}
