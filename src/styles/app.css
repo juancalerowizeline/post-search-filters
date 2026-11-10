@@ -373,7 +373,8 @@ button {
   display: flex;
   align-items: center;
   gap: var(--space-8);
-  padding: var(--space-2) var(--space-12);
+  padding: 10px var(--space-12);
+  margin-bottom: var(--space-8);
   border-top: 1px solid var(--surface-border-neutral-low);
   font-size: var(--fs-label-med);
   line-height: var(--lh-label-med);
