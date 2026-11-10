@@ -1,0 +1,66 @@
+/* DJ Platform (Factiva) tokens — INDEX / DEF-DJP, light mode.
+   Values resolved per the DJ Platform mode (blue primary, Inter), not the teal fallbacks. */
+:root {
+  /* surface */
+  --surface-foreground: #ffffff;
+  --surface-neutral-low: #f0f5f7;
+  --surface-neutral-xlow: #e8ebed;
+  --surface-primary-low: #e7f0fe;
+  --surface-border-neutral-low: #dadee1;
+  --surface-border-primary-high: #0a5adb;
+
+  /* content */
+  --content-base: #1a222b;
+  --content-contrast: #0b1118;
+  --content-subtle: #778694;
+  --content-inverse: #f2f4f5;
+
+  /* action */
+  --primary: #1067f4;
+  --primary-high: #0a5adb;
+  --input-unselected: #778694;
+
+  /* dataviz (DJ Platform palette #5 Dark Sapphire) */
+  --dataviz-1: #0071a7;
+
+  /* space */
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+
+  /* radius */
+  --radius-xsmall: 4px;
+  --radius-small: 8px;
+  --radius-med: 12px;
+  --radius-round: 999px;
+
+  /* type (Inter) */
+  --font: 'Inter Variable', 'Inter', system-ui, sans-serif;
+  --fs-header-xlarge: 24px;
+  --lh-header-xlarge: 30px;
+  --fs-header-large: 20px;
+  --lh-header-large: 24px;
+  --fs-header-small: 16px;
+  --lh-header-small: 20px;
+  --fs-label-med: 14px;
+  --lh-label-med: 20px;
+  --fs-body-med: 14px;
+  --lh-body-med: 20px;
+  --fs-small: 12px;
+  --lh-body-small: 20px;
+  --lh-label-small: 16px;
+
+  /* shadow */
+  --shadow-med: 0 2px 6px rgba(0, 0, 0, 0.09);
+
+  /* layout */
+  --header-h: 64px;
+  --nav-w: 280px;
+  --nav-w-collapsed: 72px;
+  --filters-w: 299px;
+}
