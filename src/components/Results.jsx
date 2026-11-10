@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   DotsThreeVertical,
   ArrowRight,
@@ -17,9 +17,62 @@ import {
   ArrowsDownUp,
   FileText,
 } from '@phosphor-icons/react'
-import { DATE_RANGES, FACETS, formatDate } from '../data'
+import { DATE_RANGES, FACETS, formatDate, GMT_TIME } from '../data'
 
-export function Head({ filters, showFilters, onToggleFilters, onRemoveChip, onClearAll, chips }) {
+const PAGE_SIZES = [10, 25, 50]
+const cleanSource = (name) => name.replace(/ \(.* language translation\)/, '')
+
+const PILL_ROW = 24
+const PILL_GAP = 8
+const MAX_PILL_ROWS = 2
+
+export function Head({ showFilters, onToggleFilters, onRemoveChip, chips }) {
+  const pillsRef = useRef(null)
+  const [expanded, setExpanded] = useState(false)
+  const [width, setWidth] = useState(0)
+  // `fit` = how many pills (toggle included) fit in two rows together with the link; null = measuring
+  const [fit, setFit] = useState(null)
+  const [overflowed, setOverflowed] = useState(false)
+
+  useLayoutEffect(() => {
+    const el = pillsRef.current
+    const ro = new ResizeObserver(() => setWidth(el.clientWidth))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // anything that can change the layout → render everything again and re-measure
+  useLayoutEffect(() => setFit(null), [chips, showFilters, expanded, width])
+
+  // Measure with every pill rendered: keep the pills of the first two rows and leave room
+  // for the "See more (n)" link at the end of the second row (Figma "Pills")
+  useLayoutEffect(() => {
+    if (fit !== null) return
+    const el = pillsRef.current
+    const nodes = [...el.querySelectorAll('.chip')]
+    const link = el.querySelector('.pills__more')
+    const box = el.getBoundingClientRect()
+    const top0 = nodes[0].getBoundingClientRect().top
+    const row = (n) => Math.round((n.getBoundingClientRect().top - top0) / (PILL_ROW + PILL_GAP))
+    const right = (n) => n.getBoundingClientRect().right - box.left
+    let count = nodes.filter((n) => row(n) < MAX_PILL_ROWS).length
+    const over = count < nodes.length
+    if (over && link) {
+      while (count > 1) {
+        const last = nodes[count - 1]
+        const linkW = link.getBoundingClientRect().width
+        if (row(last) === MAX_PILL_ROWS - 1 && right(last) + PILL_GAP + linkW > box.width) count--
+        else break
+      }
+    }
+    setOverflowed(over)
+    setFit(count)
+  }, [fit])
+
+  const collapsed = overflowed && !expanded && fit !== null
+  const shown = collapsed ? chips.slice(0, fit - 1) : chips
+  const hiddenCount = chips.length - shown.length
+
   return (
     <>
       <div className="title-row">
@@ -34,7 +87,7 @@ export function Head({ filters, showFilters, onToggleFilters, onRemoveChip, onCl
         Apple Inc. Profile <ArrowRight size={16} />
       </a>
 
-      <div className="pills">
+      <div className="pills" ref={pillsRef}>
         <button
           className={`chip chip--toggle${showFilters ? ' chip--active' : ''}`}
           onClick={onToggleFilters}
@@ -43,7 +96,7 @@ export function Head({ filters, showFilters, onToggleFilters, onRemoveChip, onCl
           <FunnelSimple size={16} />
           {showFilters ? 'Hide filters' : 'Show filters'}
         </button>
-        {chips.map((c) => (
+        {(fit === null ? chips : shown).map((c) => (
           <button
             key={c.id}
             className={`chip${c.excluded ? ' chip--out' : ''}`}
@@ -55,9 +108,9 @@ export function Head({ filters, showFilters, onToggleFilters, onRemoveChip, onCl
             <X size={12} weight="bold" />
           </button>
         ))}
-        {chips.length > 0 && (
-          <button className="link-btn link-btn--primary" onClick={onClearAll}>
-            Clear all
+        {(fit === null || overflowed) && (
+          <button className="pills__more" onClick={() => setExpanded((e) => !e)} aria-expanded={expanded}>
+            {expanded ? 'See less' : `See more (${fit === null ? chips.length : hiddenCount})`}
           </button>
         )}
       </div>
@@ -93,7 +146,6 @@ export function SmartSummary() {
             </li>
           )}
         </ul>
-        {!open && <div className="summary__fade" />}
       </div>
       <div className="summary__foot">
         <button className="btn btn--text-primary" onClick={() => setOpen((o) => !o)}>
@@ -122,19 +174,30 @@ export function Related({ onPick }) {
   )
 }
 
-export function ResultsList({ articles, total, onReset }) {
+export function ResultsList({ articles, onReset }) {
   const [compact, setCompact] = useState(false)
   const [sort, setSort] = useState('relevance')
+  const [pageSize, setPageSize] = useState(10)
+  const [page, setPage] = useState(1)
+
+  // new result set (filters / search changed) → back to the first page
+  useEffect(() => setPage(1), [articles])
 
   const sorted = [...articles].sort((a, b) =>
     sort === 'newest' ? b.date.localeCompare(a.date) : sort === 'oldest' ? a.date.localeCompare(b.date) : 0,
   )
+  const pages = Math.max(1, Math.ceil(sorted.length / pageSize))
+  const current = Math.min(page, pages)
+  const from = (current - 1) * pageSize
+  const visible = sorted.slice(from, from + pageSize)
+
+  const goTo = (p) => setPage(p) // no scrolling: the page keeps its position
 
   return (
     <section className={`results${compact ? ' results--compact' : ''}`} aria-label="Top headlines">
       <div className="toolbar">
         <h2 className="toolbar__title">
-          Top Headlines <span className="badge" aria-live="polite">{articles.length}</span>
+          Top Headlines <span className="badge" aria-live="polite">{articles.length.toLocaleString('en-US')}</span>
         </h2>
         <div className="toolbar__right">
           <div className="view-toggle" role="group" aria-label="Density">
@@ -147,7 +210,14 @@ export function ResultsList({ articles, total, onReset }) {
           </div>
           <label className="sort">
             <ArrowsDownUp size={16} />
-            <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort by">
+            <select
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value)
+                setPage(1)
+              }}
+              aria-label="Sort by"
+            >
               <option value="relevance">Relevance</option>
               <option value="newest">Newest first</option>
               <option value="oldest">Oldest first</option>
@@ -157,7 +227,7 @@ export function ResultsList({ articles, total, onReset }) {
         </div>
       </div>
 
-      {sorted.length === 0 ? (
+      {visible.length === 0 ? (
         <div className="empty">
           <strong>No headlines match these filters</strong>
           <button className="link-btn link-btn--primary" onClick={onReset}>
@@ -165,41 +235,64 @@ export function ResultsList({ articles, total, onReset }) {
           </button>
         </div>
       ) : (
-        sorted.map((a) => (
+        visible.map((a) => (
           <article className="card" key={a.id}>
-            <h3 className="card__title">{a.title}</h3>
-            <p className="card__body">{a.body}</p>
-            <div className="card__meta">
-              <span className="card__topic">{a.topic}</span>
-              <a className="card__source" href="#source" onClick={(e) => e.preventDefault()}>
-                <i /> {a.source.replace(' (Chinese language translation)', '')}
-              </a>
-              <span>{formatDate(a.date)}</span>
-              <span>{a.readTime} min read</span>
-              <FileText size={16} />
+            <div className="card__main">
+              <div className="card__content">
+                <h3 className="card__title">{a.title}</h3>
+                <p className="card__body">{a.body}</p>
+              </div>
+              <div className="card__meta">
+                <span className="card__topic">{a.topic}</span>
+                <a className="card__source" href="#source" onClick={(e) => e.preventDefault()}>
+                  <i /> {cleanSource(a.source)}
+                </a>
+                <span>{formatDate(a.date)}</span>
+                <span>{GMT_TIME}</span>
+                <span>{a.readTime} min read</span>
+                <FileText size={16} />
+              </div>
             </div>
           </article>
         ))
       )}
 
-      <div className="pager">
+      <nav className="pager" aria-label="Pagination">
         <div className="pager__left">
-          <button disabled aria-label="Previous page">
+          <button disabled={current === 1} onClick={() => goTo(current - 1)} aria-label="Previous page">
             <CaretLeft size={16} />
           </button>
-          <span>Page 1 of 1</span>
-          <button disabled aria-label="Next page">
+          <span>
+            Page {current} of {pages}
+          </span>
+          <button disabled={current === pages} onClick={() => goTo(current + 1)} aria-label="Next page">
             <CaretRight size={16} />
           </button>
         </div>
         <div className="pager__right">
           <span>
-            <strong>Results:</strong> {articles.length ? `1–${articles.length}` : '0'} of {articles.length}
-            {articles.length !== total && ` (filtered from ${total})`}
+            <strong>Results:</strong>{' '}
+            {sorted.length ? `${from + 1}–${from + visible.length}` : '0'} of {sorted.length.toLocaleString('en-US')}
           </span>
-          <span>10 items per page</span>
+          <label className="pager__size">
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value))
+                setPage(1)
+              }}
+              aria-label="Items per page"
+            >
+              {PAGE_SIZES.map((n) => (
+                <option key={n} value={n}>
+                  {n} items per page
+                </option>
+              ))}
+            </select>
+            <CaretDown size={16} />
+          </label>
         </div>
-      </div>
+      </nav>
     </section>
   )
 }
@@ -213,6 +306,7 @@ export function buildChips(filters) {
       label: DATE_RANGES.find((r) => r.id === filters.range).label,
     })
   }
+  if (filters.bucket) chips.push({ id: 'bucket', kind: 'bucket', label: filters.bucket.label })
   if (filters.media !== 'All') chips.push({ id: 'media', kind: 'media', label: filters.media })
   for (const f of FACETS) {
     for (const [value, state] of Object.entries(filters.facets[f.key] || {})) {
@@ -223,7 +317,7 @@ export function buildChips(filters) {
         facet: f.key,
         value,
         excluded: state === 'out',
-        label: value.replace(' (Chinese language translation)', ''),
+        label: cleanSource(value),
       })
     }
   }

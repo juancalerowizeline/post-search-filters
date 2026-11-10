@@ -51,7 +51,7 @@ export function Header({ query, onQuery }) {
 
 export function LeftNav({ collapsed, onToggle }) {
   const [open, setOpen] = useState(true)
-  const [selected, setSelected] = useState('Search Builder')
+  const [selected, setSelected] = useState(null)
 
   const Item = ({ icon: Icon, label, chev }) => (
     <button

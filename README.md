@@ -15,13 +15,14 @@ npm run build    # production build in dist/
 
 ## What works
 
-- **Media Types / Date Range** (radios) and **Source, Company, Industries, Region, Subject, Language** (checkboxes) filter the list live. Within a group values are OR'd, across groups AND'd.
+- **Media Types / Date Range** (radios) and **Source, Company, Industries, Region, Subject, Language** (checkboxes) filter the list when you click **Apply filters**. Within a group values are OR'd, across groups AND'd.
+- **Reset filters** and **Apply filters** are disabled until a filter is changed; Reset clears everything back to the default (Last 6 months) and disables both again.
 - The 🚫 button on each option **excludes** that value (checkbox shows a dash, chip gets the neutral "excluded" style).
 - Counts next to each option are faceted (they reflect the other active filters).
 - **Volume by date** chart reacts to the filters (months outside the date range are dimmed).
-- Applied-filter chips are removable; "Hide filters" collapses the panel; "Clear all", "Reset filters".
+- Applied-filter chips are removable; "Hide/Show filters" toggles the panel; "Reset filters" restores the default.
 - Header search box filters by keyword; Related Searches fill it.
-- Sort (Relevance / Newest / Oldest), detailed/compact view, Export (CSV of the current results).
+- Sort (Relevance / Newest / Oldest), detailed/compact view, Export dropdown (pick a filter element → CSV with its values, counts and selection).
 - Responsive desktop layout; under 860px the nav auto-collapses and the filter panel becomes a slide-over.
 
 ## Deploy to GitHub Pages

@@ -1,15 +1,26 @@
+import { generateArticles } from './generateArticles.js'
+
 // Reference "today" for the demo (end of the volume chart in the design: 29 oct 2026)
 export const NOW = new Date('2026-10-29T23:59:59Z')
 
 export const MEDIA_TYPES = ['All', 'Publication', 'Web News']
 
+// A range is "N days ending today, inclusive". `gran` = default distribution of the
+// "Volume by date" bars for that range (the dropdown can override it).
 export const DATE_RANGES = [
-  { id: '1d', label: 'Last Day', days: 1 },
-  { id: '1w', label: 'Last Week', days: 7 },
-  { id: '1m', label: 'Last Month', days: 30 },
-  { id: '3m', label: 'Last 3 months', days: 91 },
-  { id: '6m', label: 'Last 6 months', days: 182 },
+  { id: '1d', label: 'Last Day', days: 1, gran: 'day' },
+  { id: '1w', label: 'Last Week', days: 7, gran: 'day' },
+  { id: '1m', label: 'Last Month', days: 30, gran: 'week' },
+  { id: '3m', label: 'Last 3 months', days: 91, gran: 'week' },
+  { id: '6m', label: 'Last 6 months', days: 182, gran: 'month' },
+  // shown under "Show more" in the Date Range group
+  { id: '1y', label: 'Last year', days: 365, gran: 'month' },
+  { id: '2y', label: 'Last 2 years', days: 730, gran: 'month' },
+  { id: '3y', label: 'Last 3 years', days: 1095, gran: 'year' },
+  { id: 'all', label: 'All', days: null, gran: 'year' }, // no date limit
 ]
+
+export const VISIBLE_RANGES = 5
 
 // Facets rendered as checkbox groups. `visible` = options shown before "Show more".
 export const FACETS = [
@@ -24,6 +35,9 @@ export const FACETS = [
       'Apple Daily Taiwan (Chinese language translation)',
       'Reuters',
       'Financial Times',
+      'Les Echos (French language translation)',
+      'Handelsblatt (German language translation)',
+      'Expansión (Spanish language translation)',
     ],
   },
   {
@@ -52,6 +66,7 @@ export const FACETS = [
       'Consumer Electronics',
       'Telecommunications',
       'Retail',
+      'Automotive',
     ],
   },
   {
@@ -93,7 +108,7 @@ const SRC = {
 }
 
 // Each article carries the metadata the filters operate on.
-export const ARTICLES = [
+const SAMPLE_ARTICLES = [
   {
     id: 1,
     title: 'Google Launches Gemini 2.0, Advancing AI Agent Capabilities',
@@ -246,6 +261,13 @@ export const ARTICLES = [
   },
 ]
 
+// 10 headlines from the Figma design + generated sample content (~3 years, newest first)
+// so the paginator and every filter have enough to work with.
+export const ARTICLES = [
+  ...SAMPLE_ARTICLES,
+  ...generateArticles({ recent: 58, older: 192, startId: SAMPLE_ARTICLES.length + 1, today: NOW }),
+]
+
 // ---- filtering helpers ----------------------------------------------------
 
 const valuesOf = (article, key) => {
@@ -256,9 +278,10 @@ const valuesOf = (article, key) => {
 export function inRange(article, rangeId) {
   if (!rangeId) return true
   const range = DATE_RANGES.find((r) => r.id === rangeId)
+  if (!range.days) return true
   const t = new Date(article.date + 'T12:00:00Z').getTime()
   const startOfToday = Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth(), NOW.getUTCDate())
-  return t >= startOfToday - range.days * 86400000
+  return t >= startOfToday - (range.days - 1) * 86400000
 }
 
 function matchesFacet(article, key, selection) {
@@ -272,17 +295,22 @@ function matchesFacet(article, key, selection) {
 }
 
 /**
- * filters = { media, range, query, facets: { [facetKey]: { [value]: 'in' | 'out' } } }
- * `skip` lets us ignore one dimension ('range' | facetKey) to compute facet counts / chart data.
+ * filters = { media, range, bucket, query, facets: { [facetKey]: { [value]: 'in' | 'out' } } }
+ * `bucket` = { start, end, label } (ISO days, inclusive) — the bar picked in "Volume by date".
+ * `skip` (string or array) ignores dimensions ('media' | 'range' | 'bucket' | facetKey)
+ * to compute facet counts / chart data.
  */
 export function applyFilters(articles, filters, skip) {
   const q = filters.query.trim().toLowerCase()
+  const skips = [].concat(skip || [])
+  const b = filters.bucket
   return articles.filter((a) => {
-    if (skip !== 'media' && filters.media !== 'All' && a.media !== filters.media) return false
-    if (skip !== 'range' && !inRange(a, filters.range)) return false
+    if (!skips.includes('media') && filters.media !== 'All' && a.media !== filters.media) return false
+    if (!skips.includes('range') && !inRange(a, filters.range)) return false
+    if (!skips.includes('bucket') && b && (a.date < b.start || a.date > b.end)) return false
     if (q && !(a.title + ' ' + a.body).toLowerCase().includes(q)) return false
     for (const f of FACETS) {
-      if (f.key === skip) continue
+      if (skips.includes(f.key)) continue
       if (!matchesFacet(a, f.key, filters.facets[f.key])) return false
     }
     return true
@@ -295,19 +323,89 @@ export function facetCount(articles, filters, facetKey, value) {
   ).length
 }
 
-export const MONTHS = [
-  { label: 'May', month: 4 },
-  { label: 'Jun', month: 5 },
-  { label: 'Jul', month: 6 },
-  { label: 'Aug', month: 7 },
-  { label: 'Sep', month: 8 },
-  { label: 'Oct', month: 9 },
+// ---- "Volume by date" -----------------------------------------------------
+
+const DAY = 86400000
+const iso = (t) => new Date(t).toISOString().slice(0, 10)
+const fmt = (t, opts) => new Date(t).toLocaleDateString('en-GB', { timeZone: 'UTC', ...opts })
+const fmtDay = (t) => fmt(t, { day: '2-digit', month: 'short', year: 'numeric' }).toLowerCase() // "01 may 2026"
+
+// Options of the distribution dropdown (Figma `.Select Dropdown (Web)`)
+export const DISTRIBUTIONS = [
+  { id: 'day', label: 'Daily distribution', header: 'Day' },
+  { id: 'week', label: 'Weekly distribution', header: 'Week' },
+  { id: 'month', label: 'Monthly distribution', header: 'Month' },
+  { id: 'year', label: 'Yearly distribution', header: 'Year' },
 ]
 
+// More bars than this would be thinner than ~3px, so that distribution is not offered
+export const MAX_BARS = 53
+
+/** Time window shown by the chart: the selected Date Range (or the whole 3-year sample span). */
+export function chartWindow(rangeId) {
+  const today = Date.UTC(NOW.getUTCFullYear(), NOW.getUTCMonth(), NOW.getUTCDate())
+  const range = DATE_RANGES.find((r) => r.id === rangeId)
+  let start
+  if (range?.days) start = today - (range.days - 1) * DAY
+  else start = Math.min(...ARTICLES.map((a) => Date.parse(a.date + 'T00:00:00Z'))) // "All": back to the oldest article
+  return { start, end: today, gran: range ? range.gran : 'year' }
+}
+
+/**
+ * Bars for the chart. The window follows the Date Range; the distribution (day / week / month /
+ * year) is the range's default unless `filters.dist` overrides it (or `gran` is passed).
+ * Counts honour every other active filter except the picked bar itself, so other bars stay visible.
+ */
+export function volumeBuckets(articles, filters, gran) {
+  const win = chartWindow(filters.range)
+  const { start, end } = win
+  gran = gran ?? filters.dist ?? win.gran
+  const pool = applyFilters(articles, filters, ['range', 'bucket'])
+
+  const bins = []
+  if (gran === 'day') {
+    for (let t = start; t <= end; t += DAY) bins.push([t, t])
+  } else if (gran === 'week') {
+    // weeks are counted back from today, so the last bar always ends on today (the first may be shorter)
+    for (let e = end; e >= start; e -= 7 * DAY) bins.unshift([Math.max(e - 6 * DAY, start), e])
+  } else {
+    // calendar months or years overlapping the window
+    for (let t = start; t <= end; ) {
+      const d = new Date(t)
+      const binEnd =
+        gran === 'year'
+          ? Date.UTC(d.getUTCFullYear() + 1, 0, 0)
+          : Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)
+      bins.push([t, Math.min(binEnd, end)])
+      t = binEnd + DAY
+    }
+  }
+
+  const buckets = bins.map(([s, e]) => {
+    const a = iso(s)
+    const b = iso(e)
+    const label =
+      gran === 'year'
+        ? String(new Date(s).getUTCFullYear())
+        : gran === 'month'
+          ? fmt(s, { month: 'long', year: 'numeric' })
+          : s === e
+            ? fmt(s, { day: 'numeric', month: 'short', year: 'numeric' })
+            : `${fmt(s, { day: 'numeric', month: 'short' })} – ${fmt(e, { day: 'numeric', month: 'short', year: 'numeric' })}`
+    return { start: a, end: b, label, count: pool.filter((x) => x.date >= a && x.date <= b).length }
+  })
+
+  // Axis ends mirror the selected range (one label when the range is a single day)
+  return { buckets, gran, from: fmtDay(start), to: fmtDay(end), single: start === end }
+}
+
+export const GMT_TIME = '12:00 AM GMT'
+
 export function formatDate(iso) {
-  const d = new Date(iso + 'T12:00:00Z')
-  return (
-    d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) +
-    '  12:00 AM GMT'
-  )
+  return new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', {
+    month: 'long',
+    day: 'numeric',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
 }
