@@ -166,15 +166,15 @@ export function SmartSummary() {
   )
 }
 
-export function Related({ onPick }) {
+export function Related() {
   return (
     <section className="related">
       <h2>Related Searches</h2>
       <div className="related__tags">
         {['Apple stock', 'Apple new product releases', 'Apple financial performance'].map((t) => (
-          <button key={t} className="tag" onClick={() => onPick(t)}>
+          <span key={t} className="tag">
             {t}
-          </button>
+          </span>
         ))}
       </div>
     </section>

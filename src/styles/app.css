@@ -990,11 +990,9 @@ button {
   background: var(--surface-neutral-low);
   font-size: var(--fs-body-med);
   line-height: var(--lh-body-med);
+  cursor: pointer;
 }
 
-.tag:hover {
-  background: var(--surface-neutral-xlow);
-}
 
 .results {
   display: flex;
@@ -1035,16 +1033,18 @@ button {
   gap: var(--space-12);
 }
 
+/* Segmented control (Figma view-toggle): 4px padding/gap, 32×24 items */
 .view-toggle {
   display: inline-flex;
-  padding: 2px;
+  gap: var(--space-4);
+  padding: var(--space-4);
   border-radius: var(--radius-small);
-  background: var(--surface-neutral-low);
+  background: var(--content-inverse);
 }
 
 .view-toggle button {
   width: 32px;
-  height: 28px;
+  height: 24px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1052,10 +1052,22 @@ button {
   color: var(--content-subtle);
 }
 
+/* hover on the NOT selected item: icon turns to the contrast color */
+.view-toggle button:hover {
+  color: var(--content-contrast);
+}
+
 .view-toggle button[aria-pressed='true'] {
   background: var(--surface-foreground);
-  color: var(--content-base);
-  box-shadow: var(--shadow-med);
+  color: var(--content-contrast);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* hover on the selected item: the white chip lifts off and the icon goes subtle */
+.view-toggle button[aria-pressed='true']:hover {
+  background: transparent;
+  box-shadow: none;
+  color: var(--content-subtle);
 }
 
 .sort {

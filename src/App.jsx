@@ -149,7 +149,7 @@ export default function App() {
                 onRemoveChip={removeChip}
               />
               <SmartSummary />
-              <Related onPick={setQuery} />
+              <Related />
               <ResultsList articles={results} onReset={reset} compact={compact} onCompact={changeView} />
             </div>
           </div>
