@@ -58,14 +58,20 @@ export default function App() {
       document.body.style.overflow = ''
     }
   }, [overlay])
-  // The split view and the filter panel can't be on screen together
+  // Entering the compact (split) view tucks the filters away; "Show filters" brings them back
+  // on the left and the list + article pane adapt to the remaining width
   const changeView = (c) => {
     setCompact(c)
     if (c) setShowFilters(false)
   }
+  // on medium screens the left menu folds to icons so list + article pane keep a usable width
   const toggleFilters = () => {
-    if (!showFilters && compact) setCompact(false)
+    if (!showFilters && compact && window.innerWidth < 1280) setNavCollapsed(true)
     setShowFilters((s) => !s)
+  }
+  const openFilters = () => {
+    if (compact && window.innerWidth < 1280) setNavCollapsed(true)
+    setShowFilters(true)
   }
   const closeOverlays = () => {
     setShowFilters(false)
@@ -117,10 +123,7 @@ export default function App() {
         chips={chips}
         onRemoveChip={removeChip}
         onReset={reset}
-        onOpenFilters={() => {
-          setCompact(false)
-          setShowFilters(true)
-        }}
+        onOpenFilters={openFilters}
       />
       {overlay && <div className="scrim" onClick={closeOverlays} aria-hidden />}
       <div className="body">

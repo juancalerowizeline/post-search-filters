@@ -1150,13 +1150,13 @@ button {
 
 .split {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch; /* the gray pane always matches the height of the list */
   gap: var(--space-12);
 }
 
 .split__list {
-  flex: none;
-  width: 334px;
+  flex: 0 1 334px;
+  min-width: 280px;
   min-height: 1000px;
   display: flex;
   flex-direction: column;
@@ -1193,10 +1193,6 @@ button {
 .split__detail {
   flex: 1;
   min-width: 0;
-  position: sticky;
-  top: calc(var(--header-h) + var(--space-16));
-  max-height: calc(100vh - var(--header-h) - var(--space-32, 32px));
-  overflow-y: auto;
   padding: var(--space-12);
   background: #f8f8f8;
   border-radius: var(--radius-med);
