@@ -29,6 +29,7 @@ export default function App() {
   const [query, setQuery] = useState('')
   const [navCollapsed, setNavCollapsed] = useState(() => window.matchMedia(NARROW).matches)
   const [showFilters, setShowFilters] = useState(() => !window.matchMedia(NARROW).matches)
+  const [compact, setCompact] = useState(false) // compact = split view (list + article pane)
   const resultsRef = useRef(null)
 
   // keep layout sensible when crossing the narrow breakpoint
@@ -57,6 +58,15 @@ export default function App() {
       document.body.style.overflow = ''
     }
   }, [overlay])
+  // The split view and the filter panel can't be on screen together
+  const changeView = (c) => {
+    setCompact(c)
+    if (c) setShowFilters(false)
+  }
+  const toggleFilters = () => {
+    if (!showFilters && compact) setCompact(false)
+    setShowFilters((s) => !s)
+  }
   const closeOverlays = () => {
     setShowFilters(false)
     setNavCollapsed(true)
@@ -107,7 +117,10 @@ export default function App() {
         chips={chips}
         onRemoveChip={removeChip}
         onReset={reset}
-        onOpenFilters={() => setShowFilters(true)}
+        onOpenFilters={() => {
+          setCompact(false)
+          setShowFilters(true)
+        }}
       />
       {overlay && <div className="scrim" onClick={closeOverlays} aria-hidden />}
       <div className="body">
@@ -128,16 +141,16 @@ export default function App() {
                 onClose={() => setShowFilters(false)}
               />
             )}
-            <div className="content" ref={resultsRef}>
+            <div className={`content${compact ? ' content--split' : ''}`} ref={resultsRef}>
               <Head
                 showFilters={showFilters}
-                onToggleFilters={() => setShowFilters((s) => !s)}
+                onToggleFilters={toggleFilters}
                 chips={chips}
                 onRemoveChip={removeChip}
               />
               <SmartSummary />
               <Related onPick={setQuery} />
-              <ResultsList articles={results} onReset={reset} />
+              <ResultsList articles={results} onReset={reset} compact={compact} onCompact={changeView} />
             </div>
           </div>
           <footer className="footer">

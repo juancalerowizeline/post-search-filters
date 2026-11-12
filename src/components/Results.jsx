@@ -16,8 +16,15 @@ import {
   Columns,
   ArrowsDownUp,
   FileText,
+  Info,
+  ArrowSquareOut,
+  DownloadSimple,
+  BookmarkSimple,
+  LinkSimpleHorizontal,
+  Play,
 } from '@phosphor-icons/react'
 import { DATE_RANGES, FACETS, formatDate, GMT_TIME } from '../data'
+import logo from '../assets/dow-jones.svg'
 
 const PAGE_SIZES = [10, 25, 50]
 const cleanSource = (name) => name.replace(/ \(.* language translation\)/, '')
@@ -174,8 +181,117 @@ export function Related({ onPick }) {
   )
 }
 
-export function ResultsList({ articles, onReset }) {
-  const [compact, setCompact] = useState(false)
+
+// Fictional follow-up copy so the viewer reads like a full article (sample content only)
+function articleParagraphs(a) {
+  const region = a.region[0]
+  const company = a.company[0]
+  return [
+    { text: a.body },
+    {
+      head: 'Background',
+      text: `${company} has been under close watch from investors in ${region} over the past year, with attention focused on ${a.subject[0].toLowerCase()} and how management allocates capital. Executives said the latest development fits the strategy outlined at earlier investor events.`,
+    },
+    {
+      text: `Analysts covering the ${a.industry[0].toLowerCase()} sector said the move could influence competitors, although they cautioned that the impact will depend on execution and on regulatory conditions in ${region}.`,
+    },
+    {
+      head: 'What comes next',
+      text: `The company said it will provide further detail in its next scheduled update. Market participants expect additional disclosures on timing, costs and the expected effect on revenue over the coming quarters.`,
+    },
+    { text: 'This is sample content created for the prototype; names of companies are real, events and figures are fictional.' },
+  ]
+}
+
+function ArticleViewer({ article: a, onClose }) {
+  const paragraphs = articleParagraphs(a)
+  const words = paragraphs.reduce((n, p) => n + p.text.split(/\s+/).length, 0)
+  const longDate = new Date(a.date + 'T12:00:00Z').toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  })
+  const subheadline = a.body.split(/(?<=\.)\s/)[0]
+  return (
+    <article className="viewer">
+      <header className="viewer__header">
+        <div className="viewer__bar">
+          <img src={logo} alt="Dow Jones" className="viewer__logo" />
+          <div className="viewer__actions">
+            <button className="icon-btn icon-btn--sm" aria-label="Open in a new tab">
+              <ArrowSquareOut size={20} />
+            </button>
+            <button className="icon-btn icon-btn--sm" aria-label="Close article" onClick={onClose}>
+              <X size={20} />
+            </button>
+          </div>
+        </div>
+        <hr className="viewer__rule" />
+      </header>
+
+      <div className="viewer__content">
+        <div className="viewer__source">{cleanSource(a.source)}</div>
+        <div className="viewer__headline">
+          <div className="viewer__tags">
+            {[a.topic, a.media, a.region[0]].map((t) => (
+              <span key={t} className="ptag">
+                {t}
+              </span>
+            ))}
+          </div>
+          <h3>{a.title}</h3>
+          <p className="viewer__sub">{subheadline}</p>
+          <div className="viewer__byline">
+            <span>By John Doe</span>
+            <span>
+              <a href="#source" onClick={(e) => e.preventDefault()}>
+                {cleanSource(a.source)},
+              </a>{' '}
+              {a.language[0]}, {words.toLocaleString('en-US')} words, {longDate}
+            </span>
+          </div>
+        </div>
+
+        <div className="viewer__utility">
+          <div>
+            <button className="icon-btn icon-btn--xs" aria-label="Download">
+              <DownloadSimple size={16} />
+            </button>
+            <button className="icon-btn icon-btn--xs" aria-label="Save">
+              <BookmarkSimple size={16} />
+            </button>
+            <button className="icon-btn icon-btn--xs" aria-label="Copy link">
+              <LinkSimpleHorizontal size={16} />
+            </button>
+          </div>
+          <button className="viewer__listen">
+            <Play size={16} /> Listen ({String(a.readTime).padStart(2, '0')}:20)
+          </button>
+        </div>
+
+        <div className="viewer__body">
+          {paragraphs.map((p, i) => (
+            <div key={i}>
+              {p.head && <h4>{p.head}</h4>}
+              <p>{p.text}</p>
+            </div>
+          ))}
+        </div>
+
+        <footer className="viewer__copy">
+          <hr />
+          <span>Dow Jones &amp; Company, Inc.</span>
+          <span>WP-DJ-{String(a.id).padStart(10, '0')}</span>
+        </footer>
+      </div>
+    </article>
+  )
+}
+
+export function ResultsList({ articles, onReset, compact, onCompact }) {
+  const setCompact = onCompact
+  const [selectedId, setSelectedId] = useState(null) // compact (split) view: article shown in the right pane
   const [sort, setSort] = useState('relevance')
   const [pageSize, setPageSize] = useState(10)
   const [page, setPage] = useState(1)
@@ -193,50 +309,26 @@ export function ResultsList({ articles, onReset }) {
 
   const goTo = (p) => setPage(p) // no scrolling: the page keeps its position
 
-  return (
-    <section className={`results${compact ? ' results--compact' : ''}`} aria-label="Top headlines">
-      <div className="toolbar">
-        <h2 className="toolbar__title">
-          Top Headlines <span className="badge" aria-live="polite">{articles.length.toLocaleString('en-US')}</span>
-        </h2>
-        <div className="toolbar__right">
-          <div className="view-toggle" role="group" aria-label="Density">
-            <button aria-pressed={!compact} onClick={() => setCompact(false)} aria-label="Detailed view">
-              <Rows size={16} />
-            </button>
-            <button aria-pressed={compact} onClick={() => setCompact(true)} aria-label="Compact view">
-              <Columns size={16} />
-            </button>
-          </div>
-          <label className="sort">
-            <ArrowsDownUp size={16} />
-            <select
-              value={sort}
-              onChange={(e) => {
-                setSort(e.target.value)
-                setPage(1)
-              }}
-              aria-label="Sort by"
-            >
-              <option value="relevance">Relevance</option>
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
-            </select>
-            <CaretDown size={16} />
-          </label>
-        </div>
-      </div>
+  const selected = articles.find((a) => a.id === selectedId)
 
-      {visible.length === 0 ? (
+  const cards =
+    visible.length === 0 ? (
         <div className="empty">
           <strong>No headlines match these filters</strong>
           <button className="link-btn link-btn--primary" onClick={onReset}>
             Reset filters
           </button>
         </div>
-      ) : (
-        visible.map((a) => (
-          <article className="card" key={a.id}>
+    ) : (
+      visible.map((a) => (
+          <article
+            className={`card${compact ? ' card--split' : ''}${compact && a.id === selectedId ? ' card--selected' : ''}`}
+            key={a.id}
+            onClick={compact ? () => setSelectedId(a.id) : undefined}
+            onKeyDown={compact ? (e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setSelectedId(a.id)) : undefined}
+            tabIndex={compact ? 0 : undefined}
+            aria-current={compact && a.id === selectedId ? 'true' : undefined}
+          >
             <div className="card__main">
               <div className="card__content">
                 <h3 className="card__title">{a.title}</h3>
@@ -254,9 +346,9 @@ export function ResultsList({ articles, onReset }) {
               </div>
             </div>
           </article>
-        ))
-      )}
-
+      ))
+    )
+  const pager = (
       <nav className="pager" aria-label="Pagination">
         <div className="pager__left">
           <button disabled={current === 1} onClick={() => goTo(current - 1)} aria-label="Previous page">
@@ -293,6 +385,66 @@ export function ResultsList({ articles, onReset }) {
           </label>
         </div>
       </nav>
+  )
+
+  return (
+    <section className={`results${compact ? ' results--split' : ''}`} aria-label="Top headlines">
+      <div className="toolbar">
+        <h2 className="toolbar__title">
+          Top Headlines <span className="badge" aria-live="polite">{articles.length.toLocaleString('en-US')}</span>
+        </h2>
+        <div className="toolbar__right">
+          <div className="view-toggle" role="group" aria-label="Density">
+            <button aria-pressed={!compact} onClick={() => setCompact(false)} aria-label="Detailed view">
+              <Rows size={16} />
+            </button>
+            <button aria-pressed={compact} onClick={() => setCompact(true)} aria-label="Compact view">
+              <Columns size={16} />
+            </button>
+          </div>
+          <label className="sort">
+            <ArrowsDownUp size={16} />
+            <select
+              value={sort}
+              onChange={(e) => {
+                setSort(e.target.value)
+                setPage(1)
+              }}
+              aria-label="Sort by"
+            >
+              <option value="relevance">Relevance</option>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+            <CaretDown size={16} />
+          </label>
+        </div>
+      </div>
+
+      {compact ? (
+        <div className="split">
+          <div className="split__list">
+            {cards}
+            {pager}
+          </div>
+          <aside className="split__detail" aria-live="polite">
+            {selected ? (
+              <ArticleViewer article={selected} onClose={() => setSelectedId(null)} />
+            ) : (
+              <div className="detail__empty">
+                <Info size={16} weight="fill" />
+                <strong>No article selected.</strong>
+                <span>Select an article from the sidebar to view</span>
+              </div>
+            )}
+          </aside>
+        </div>
+      ) : (
+        <>
+          {cards}
+          {pager}
+        </>
+      )}
     </section>
   )
 }
