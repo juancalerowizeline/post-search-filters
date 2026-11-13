@@ -3,12 +3,14 @@
 :root {
   /* surface */
   --surface-foreground: #ffffff;
+  --surface-background: #f8f8f8; /* segmented control track */
   --surface-neutral-low: #f0f5f7;
   --surface-neutral-xlow: #e8ebed;
   --surface-primary-low: #e7f0fe;
   --surface-primary-xlow: #f0f6ff; /* hover of minimal / outline primary buttons */
   --border-button-neutral: #ceced4; /* outline primary button border */
   --surface-border-neutral-low: #dadee1;
+  --negative-high: #b00020; /* excluded values (Figma surface/negative-high, content/negative-high) */
   --surface-border-primary-high: #0a5adb;
 
   /* content */

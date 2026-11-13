@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   DotsThreeVertical,
   ArrowRight,
@@ -25,6 +25,7 @@ import {
 } from '@phosphor-icons/react'
 import { DATE_RANGES, FACETS, formatDate, GMT_TIME } from '../data'
 import logo from '../assets/dow-jones.svg'
+import { SidebarSliderIn, SidebarSliderOut } from './SidebarIcons'
 
 const PAGE_SIZES = [10, 25, 50]
 const cleanSource = (name) => name.replace(/ \(.* language translation\)/, '')
@@ -33,7 +34,134 @@ const PILL_ROW = 24
 const PILL_GAP = 8
 const MAX_PILL_ROWS = 2
 
-export function Head({ showFilters, onToggleFilters, onRemoveChip, chips }) {
+function TitleBlock() {
+  return (
+    <>
+      <div className="title-row">
+        <h1>Apple</h1>
+        <button className="btn btn--outline-icon" aria-label="More options">
+          <DotsThreeVertical size={16} weight="bold" />
+        </button>
+        <button className="btn btn--solid btn--small">Modify<span className="hide-phone"> Search</span></button>
+      </div>
+
+      <a className="profile-link" href="#profile" onClick={(e) => e.preventDefault()}>
+        Apple Inc. Profile <ArrowRight size={16} />
+      </a>
+    </>
+  )
+}
+
+const GROUP_LABELS = { range: 'Date Range', bucket: 'Date', media: 'Media Types', query: 'Keyword' }
+
+// Applied chips grouped by the filter they come from, in order of first appearance
+function groupChips(chips) {
+  const groups = []
+  for (const c of chips) {
+    const key = c.kind === 'facet' ? c.facet : c.kind
+    let g = groups.find((x) => x.key === key)
+    if (!g) {
+      g = { key, label: c.kind === 'facet' ? c.facetTitle : GROUP_LABELS[c.kind], mode: c.mode, chips: [] }
+      groups.push(g)
+    }
+    g.chips.push(c)
+  }
+  return groups
+}
+
+// "Or and version": one card with the applied filters (Figma `applied`). The leading icon toggles
+// the filter sidebar; the title row opens / closes the pills. Connectors: or / and between the
+// included values of a group, "not" before the excluded ones.
+function AppliedFilters({ chips, showFilters, onToggleFilters, onRemoveChip, onToggleMode }) {
+  const [open, setOpen] = useState(true)
+  const groups = groupChips(chips)
+
+  const chip = (c) => (
+    <button
+      key={c.id}
+      className={`chip${c.excluded ? ' chip--neg' : ''}`}
+      onClick={() => onRemoveChip(c)}
+      aria-label={`Remove filter ${c.label}`}
+    >
+      {c.excluded && <Prohibit size={16} />}
+      {c.label}
+      <X size={12} weight="bold" />
+    </button>
+  )
+
+  return (
+    <section className={`applied${open ? ' applied--open' : ''}`} aria-label="Filters applied">
+      <div className="applied__head">
+        <button
+          className={`applied__toggle${showFilters ? ' applied__toggle--on' : ''}`}
+          onClick={onToggleFilters}
+          aria-pressed={showFilters}
+          aria-label={showFilters ? 'Hide filters' : 'Show filters'}
+          title={showFilters ? 'Hide filters' : 'Show filters'}
+        >
+          {showFilters ? <SidebarSliderIn /> : <SidebarSliderOut />}
+        </button>
+        <button className="applied__title" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+          <span>Filters Applied ({chips.length})</span>
+          {open ? <CaretUp size={20} /> : <CaretDown size={20} />}
+        </button>
+      </div>
+      {open && groups.length > 0 && (
+        <div className="applied__groups">
+          {groups.map((g) => {
+            const included = g.chips.filter((c) => !c.excluded)
+            const excluded = g.chips.filter((c) => c.excluded)
+            return (
+              <div className="applied__group" key={g.key}>
+                <div className="applied__group-label">{g.label}</div>
+                <div className="applied__pills">
+                  {included.map((c, i) => (
+                    <Fragment key={c.id}>
+                      {i > 0 && (
+                        <button
+                          className="chip chip--op"
+                          onClick={() => onToggleMode(g.key, g.mode === 'and' ? 'or' : 'and')}
+                          aria-label={`${g.label}: match ${g.mode}. Switch to ${g.mode === 'and' ? 'or' : 'and'}`}
+                          title={`Switch to ${g.mode === 'and' ? 'or' : 'and'}`}
+                        >
+                          {g.mode}
+                        </button>
+                      )}
+                      {chip(c)}
+                    </Fragment>
+                  ))}
+                  {excluded.length > 0 && <span className="chip chip--op">not</span>}
+                  {excluded.map(chip)}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </section>
+  )
+}
+
+function HeadOrAnd({ showFilters, onToggleFilters, onRemoveChip, onToggleMode, chips }) {
+  return (
+    <>
+      <TitleBlock />
+      <AppliedFilters
+        chips={chips}
+        showFilters={showFilters}
+        onToggleFilters={onToggleFilters}
+        onRemoveChip={onRemoveChip}
+        onToggleMode={onToggleMode}
+      />
+    </>
+  )
+}
+
+export function Head(props) {
+  return props.orAnd ? <HeadOrAnd {...props} /> : <HeadClassic {...props} />
+}
+
+function HeadClassic({ showFilters, onToggleFilters, onRemoveChip, chips }) {
   const pillsRef = useRef(null)
   const [expanded, setExpanded] = useState(false)
   const [width, setWidth] = useState(0)
@@ -82,17 +210,7 @@ export function Head({ showFilters, onToggleFilters, onRemoveChip, chips }) {
 
   return (
     <>
-      <div className="title-row">
-        <h1>Apple</h1>
-        <button className="btn btn--outline-icon" aria-label="More options">
-          <DotsThreeVertical size={16} weight="bold" />
-        </button>
-        <button className="btn btn--solid btn--small">Modify<span className="hide-phone"> Search</span></button>
-      </div>
-
-      <a className="profile-link" href="#profile" onClick={(e) => e.preventDefault()}>
-        Apple Inc. Profile <ArrowRight size={16} />
-      </a>
+      <TitleBlock />
 
       <div className="pills" ref={pillsRef}>
         <button
@@ -467,6 +585,8 @@ export function buildChips(filters) {
         id: `${f.key}:${value}`,
         kind: 'facet',
         facet: f.key,
+        facetTitle: f.title,
+        mode: filters.facetModes?.[f.key] || 'or', // how the included values of the group combine
         value,
         excluded: state === 'out',
         label: cleanSource(value),

@@ -6,7 +6,12 @@ import { Head, SmartSummary, Related, ResultsList, buildChips } from './componen
 
 // Panel filters (edited as a draft, committed with "Apply filters").
 // The keyword query lives in the header and filters live.
-const DEFAULT_FILTERS = { media: 'All', range: '6m', dist: null, bucket: null, facets: {} }
+const DEFAULT_FILTERS = { media: 'All', range: '6m', dist: null, bucket: null, facets: {}, facetModes: {} }
+// Gear menu → "Or and version": same app with an or / and radio on some filter groups
+const OR_AND = new URLSearchParams(window.location.search).get('version') === 'or-and'
+// Gear menu → date alternatives: 'date-alt' (click-click span), 'date-alt-1' (brush), '-2' (segmented card), '-3' (custom range)
+const DATE_VERSION = new URLSearchParams(window.location.search).get('version')
+const DATE_ALT = DATE_VERSION?.startsWith('date-alt') ? DATE_VERSION : null
 const NARROW = '(max-width: 860px)'
 const PHONE = '(max-width: 600px)'
 
@@ -17,6 +22,10 @@ const snapshot = (f) =>
     range: f.range,
     dist: f.dist ?? null,
     bucket: f.bucket ? [f.bucket.start, f.bucket.end] : null,
+    modes: Object.entries(f.facetModes || {})
+      .filter(([, m]) => m === 'and')
+      .map(([k]) => k)
+      .sort(),
     facets: Object.keys(f.facets)
       .sort()
       .map((k) => [k, Object.entries(f.facets[k]).sort(([a], [b]) => a.localeCompare(b))])
@@ -91,6 +100,8 @@ export default function App() {
   const setDist = (dist) => setDraft((f) => ({ ...f, dist, bucket: null }))
   const setBucket = (bucket) => setDraft((f) => ({ ...f, bucket }))
   const setFacetValue = (facet, value, state) => setDraft((f) => withFacet(f, facet, value, state))
+  const setFacetMode = (facet, mode) =>
+    setDraft((f) => ({ ...f, facetModes: { ...(f.facetModes || {}), [facet]: mode } }))
 
   // Removing a chip is an explicit action on the applied results, so it applies immediately
   const removeChip = (c) => {
@@ -101,6 +112,13 @@ export default function App() {
       return withFacet(f, c.facet, c.value, 'off')
     }
     if (c.kind === 'query') return setQuery('')
+    setDraft(update)
+    setApplied(update)
+  }
+
+  // Clicking an or / and connector in the applied card flips that group's mode right away
+  const toggleMode = (facet, mode) => {
+    const update = (f) => ({ ...f, facetModes: { ...(f.facetModes || {}), [facet]: mode } })
     setDraft(update)
     setApplied(update)
   }
@@ -139,6 +157,9 @@ export default function App() {
                 setDist={setDist}
                 setBucket={setBucket}
                 setFacetValue={setFacetValue}
+                orAnd={OR_AND}
+                dateAlt={DATE_ALT}
+                setFacetMode={setFacetMode}
                 onReset={reset}
                 onApply={apply}
                 onClose={() => setShowFilters(false)}
@@ -146,10 +167,12 @@ export default function App() {
             )}
             <div className={`content${compact ? ' content--split' : ''}`} ref={resultsRef}>
               <Head
+                orAnd={OR_AND}
                 showFilters={showFilters}
                 onToggleFilters={toggleFilters}
                 chips={chips}
                 onRemoveChip={removeChip}
+                onToggleMode={toggleMode}
               />
               <SmartSummary />
               <Related />

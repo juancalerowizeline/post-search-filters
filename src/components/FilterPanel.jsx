@@ -7,6 +7,7 @@ import {
   DISTRIBUTIONS,
   MAX_BARS,
   MEDIA_TYPES,
+  OR_AND_FACETS,
   VISIBLE_OPTIONS,
   VISIBLE_RANGES,
   applyFilters,
@@ -25,6 +26,109 @@ function Group({ title, count, collapsed, onToggle, children }) {
       </button>
       {!collapsed && children}
     </section>
+  )
+}
+
+const SHORT_RANGE = { '1d': 'Day', '1w': 'Week', '1m': 'Month', '3m': '3 mo', '6m': '6 mo', '1y': '1 yr', '2y': '2 yrs', '3y': '3 yrs', all: 'All' }
+
+// "Date alternative": the ranges become one row of pills sitting right above the chart
+function RangeChips({ value, onChange }) {
+  return (
+    <div className="rchips" role="radiogroup" aria-label="Date range">
+      {DATE_RANGES.map((r) => (
+        <button
+          key={r.id}
+          className={`rchip${value === r.id ? ' rchip--on' : ''}`}
+          role="radio"
+          aria-checked={value === r.id}
+          title={r.label}
+          onClick={() => onChange(r.id)}
+        >
+          {SHORT_RANGE[r.id]}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+const SEG_LABEL = { '1d': '1D', '1w': '1W', '1m': '1M', '3m': '3M', '6m': '6M', '1y': '1Y', '2y': '2Y', '3y': '3Y', all: 'All' }
+
+// Date alternative 2: one joined segmented control, attached to the chart in a single card
+function RangeSegments({ value, onChange }) {
+  return (
+    <div className="seg" role="radiogroup" aria-label="Date range">
+      {DATE_RANGES.map((r) => (
+        <button
+          key={r.id}
+          className={`seg__opt${value === r.id ? ' seg__opt--on' : ''}`}
+          role="radio"
+          aria-checked={value === r.id}
+          title={r.label}
+          onClick={() => onChange(r.id)}
+        >
+          {SEG_LABEL[r.id]}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10)
+
+// Date alternative 3: three options, Today, This month and Custom (From / To inputs)
+function CustomRange({ filters, setRange, setDist, setBucket }) {
+  const [pick, setPick] = useState(null) // 'today' | 'month' | 'custom'
+  const win = chartWindow('all')
+  const min = isoDay(win.start)
+  const max = isoDay(win.end)
+  const from = filters.bucket?.start ?? min
+  const to = filters.bucket?.end ?? max
+  const apply = (f, t) => {
+    if (!f || !t || f > t) return
+    setBucket({ start: f, end: t, label: `${spanLabel(f)} – ${spanLabel(t)}` })
+  }
+  const today = () => {
+    setPick('today')
+    setRange('1d')
+  }
+  const month = () => {
+    setPick('month')
+    setRange('1m') // last 30 days window; the bar span is the calendar month so far
+    const w = chartWindow('1m')
+    const first = isoDay(Date.UTC(new Date(w.end).getUTCFullYear(), new Date(w.end).getUTCMonth(), 1))
+    setBucket({ start: first > isoDay(w.start) ? first : isoDay(w.start), end: isoDay(w.end), label: 'This month' })
+  }
+  const custom = () => {
+    setPick('custom')
+    setRange('all')
+    setDist('month')
+  }
+  const opts = [
+    ['today', 'Today', today],
+    ['month', 'This month', month],
+    ['custom', 'Custom', custom],
+  ]
+  return (
+    <>
+      <SegmentedControl
+        label="Date range"
+        value={pick}
+        onChange={(id) => opts.find(([k]) => k === id)[2]()}
+        options={opts.map(([id, text]) => [id, text])}
+      />
+      {pick === 'custom' && (
+        <div className="drange">
+          <label>
+            <span>From</span>
+            <input type="date" value={from} min={min} max={to} onChange={(e) => apply(e.target.value, to)} />
+          </label>
+          <label>
+            <span>To</span>
+            <input type="date" value={to} min={from} max={max} onChange={(e) => apply(from, e.target.value)} />
+          </label>
+        </div>
+      )}
+    </>
   )
 }
 
@@ -62,9 +166,97 @@ function niceStep(max) {
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * pow
 }
 
+const spanLabel = (iso) =>
+  new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
+
 const tickLabel = (n) => (n >= 1000 ? `${n / 1000}K` : String(n))
 
-function DistributionSelect({ filters, gran, onChange }) {
+// a distribution is offered only if it yields 2–53 bars for the Date Range
+function offeredDistributions(filters, gran) {
+  return DISTRIBUTIONS.filter((d) => {
+    if (d.id === gran) return true
+    const win = chartWindow(filters.range)
+    const days = (win.end - win.start) / 86400000 + 1
+    if (d.id === 'year' && days <= 365) return false // up to a year: no yearly view
+    if (d.id === 'week' && days >= 365) return false // a year or more: no weekly view
+    if (d.id === 'month' && days <= 31) return false // up to a month: no monthly view
+    const n = volumeBuckets(ARTICLES, filters, d.id).buckets.length
+    return n >= 2 && n <= MAX_BARS // a single bar says nothing the range doesn't already
+  })
+}
+
+// Figma "Segmented Control" (Fill, node 206:100357)
+function SegmentedControl({ options, value, onChange, label }) {
+  return (
+    <div className="segctl" role="radiogroup" aria-label={label}>
+      {options.map(([id, text]) => (
+        <button
+          key={id}
+          className={`segctl__item${id === value ? ' segctl__item--on' : ''}`}
+          role="radio"
+          aria-checked={id === value}
+          onClick={() => onChange(id)}
+        >
+          {text}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// Date range as a dropdown (Date alternative 1): sits joined to the distribution dropdown
+function RangeSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e) => !ref.current?.contains(e.target) && setOpen(false)
+    const onKey = (e) => e.key === 'Escape' && setOpen(false)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+  const current = DATE_RANGES.find((r) => r.id === value)
+  return (
+    <div className="dd" ref={ref}>
+      <button
+        className={`chart__select${open ? ' chart__select--open' : ''}`}
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label="Date range"
+      >
+        <span>{current?.label}</span>
+        {open ? <CaretUp size={16} /> : <CaretDown size={16} />}
+      </button>
+      {open && (
+        <div className="dd__menu" role="listbox" aria-label="Date range">
+          {DATE_RANGES.map((r) => (
+            <button
+              key={r.id}
+              className="dd__item"
+              role="option"
+              aria-selected={r.id === value}
+              onClick={() => {
+                onChange(r.id)
+                setOpen(false)
+              }}
+            >
+              <span>{r.label}</span>
+              {r.id === value && <Check size={16} className="dd__check" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DistributionSelect({ filters, gran, onChange, short }) {
+  const text = (d) => (short ? d.label.replace(' distribution', '') : d.label)
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
   useEffect(() => {
@@ -80,17 +272,7 @@ function DistributionSelect({ filters, gran, onChange }) {
   }, [open])
 
   const current = DISTRIBUTIONS.find((d) => d.id === gran)
-  // a distribution is offered only if it yields 2–53 bars for the Date Range
-  const offered = DISTRIBUTIONS.filter((d) => {
-    if (d.id === gran) return true
-    const win = chartWindow(filters.range)
-    const days = (win.end - win.start) / 86400000 + 1
-    if (d.id === 'year' && days <= 365) return false // up to a year: no yearly view
-    if (d.id === 'week' && days >= 365) return false // a year or more: no weekly view
-    if (d.id === 'month' && days <= 31) return false // up to a month: no monthly view
-    const n = volumeBuckets(ARTICLES, filters, d.id).buckets.length
-    return n >= 2 && n <= MAX_BARS // a single bar says nothing the range doesn't already
-  })
+  const offered = offeredDistributions(filters, gran)
 
   return (
     <div className="dd" ref={ref}>
@@ -101,7 +283,7 @@ function DistributionSelect({ filters, gran, onChange }) {
         aria-expanded={open}
         aria-label="Distribution"
       >
-        <span>{current.label}</span>
+        <span>{text(current)}</span>
         {open ? <CaretUp size={16} /> : <CaretDown size={16} />}
       </button>
       {open && (
@@ -117,7 +299,7 @@ function DistributionSelect({ filters, gran, onChange }) {
                 setOpen(false)
               }}
             >
-              <span>{d.label}</span>
+              <span>{text(d)}</span>
               {d.id === gran && <Check size={16} className="dd__check" />}
             </button>
           ))}
@@ -127,7 +309,12 @@ function DistributionSelect({ filters, gran, onChange }) {
   )
 }
 
-function VolumeChart({ filters, onPickBucket, onPickDist }) {
+function VolumeChart({ filters, onPickBucket, onPickDist, alt, onPickRange }) {
+  const [anchor, setAnchor] = useState(null) // alt: first bar of a span
+  const [drag, setDrag] = useState(null) // brush: { a, b } bar indexes while dragging
+  const [hover, setHover] = useState(null) // brush: bar index under the pointer
+  const areaRef = useRef(null)
+  const brush = alt === 'brush'
   // Bars follow the Date Range (day / week / month) and every other filter except the picked bar
   const { buckets, gran, from, to, single } = volumeBuckets(ARTICLES, filters)
   // Integer axis only: with a small max there is one line per whole number (max 2 → 0, 1, 2)
@@ -137,11 +324,67 @@ function VolumeChart({ filters, onPickBucket, onPickDist }) {
   const top = step * intervals
   const ticks = Array.from({ length: intervals + 1 }, (_, i) => i * step)
   const sel = filters.bucket
-  const isSel = (b) => sel && sel.start === b.start && sel.end === b.end
+  // alt: a selection can span several bars (click one bar, then another to extend)
+  const isSel = (b) => sel && (alt ? b.start >= sel.start && b.end <= sel.end : sel.start === b.start && sel.end === b.end)
+  const pick = (b) => {
+    if (!alt) return onPickBucket(isSel(b) ? null : { start: b.start, end: b.end, label: b.label })
+    const single = sel && anchor && sel.start === anchor.start && sel.end === anchor.end
+    if (single && anchor.start === b.start) {
+      setAnchor(null)
+      return onPickBucket(null)
+    }
+    if (single) {
+      const [a, z] = anchor.start < b.start ? [anchor, b] : [b, anchor]
+      const label = `${spanLabel(a.start)} – ${spanLabel(z.end)}`
+      return onPickBucket({ start: a.start, end: z.end, label })
+    }
+    setAnchor(b)
+    onPickBucket({ start: b.start, end: b.end, label: b.label })
+  }
+  const idxAt = (e) => {
+    const r = areaRef.current.getBoundingClientRect()
+    return Math.max(0, Math.min(buckets.length - 1, Math.floor(((e.clientX - r.left) / r.width) * buckets.length)))
+  }
+  const brushDown = (e) => {
+    if (!brush || e.button !== 0) return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    const i = idxAt(e)
+    setDrag({ a: i, b: i })
+  }
+  const brushMove = (e) => {
+    if (!brush) return
+    const i = idxAt(e)
+    setHover(i)
+    if (drag) setDrag((d) => d && { ...d, b: i })
+  }
+  const brushUp = () => {
+    if (!drag) return
+    const lo = Math.min(drag.a, drag.b)
+    const hi = Math.max(drag.a, drag.b)
+    setDrag(null)
+    const first = buckets[lo]
+    const last = buckets[hi]
+    if (lo === hi) {
+      // a plain click: select the bar, or clear it when it already is the whole selection
+      const same = sel && sel.start === first.start && sel.end === first.end
+      return onPickBucket(same ? null : { start: first.start, end: first.end, label: first.label })
+    }
+    onPickBucket({ start: first.start, end: last.end, label: `${spanLabel(first.start)} – ${spanLabel(last.end)}` })
+  }
+  const lit = (b, i) => (drag ? i >= Math.min(drag.a, drag.b) && i <= Math.max(drag.a, drag.b) : !!isSel(b))
+  const hovered = brush && !drag && hover != null ? buckets[hover] : null
+  const selCount = sel ? buckets.filter(isSel).reduce((n, b) => n + b.count, 0) : 0
 
   return (
-    <div className={`chart${sel ? ' chart--has-selection' : ''}${buckets.length === 1 ? ' chart--one' : ''}`}>
-      <DistributionSelect filters={filters} gran={gran} onChange={onPickDist} />
+    <div className={`chart${sel || drag ? ' chart--has-selection' : ''}${buckets.length === 1 ? ' chart--one' : ''}${brush ? ' chart--brush' : ''}`}>
+      {onPickRange ? (
+        <div className="dd-pair">
+          <RangeSelect value={filters.range} onChange={onPickRange} />
+          <DistributionSelect filters={filters} gran={gran} onChange={onPickDist} short />
+        </div>
+      ) : (
+        <DistributionSelect filters={filters} gran={gran} onChange={onPickDist} />
+      )}
       <div className="chart__plot">
         <div className="chart__y" aria-hidden>
           {ticks.map((t) => (
@@ -150,18 +393,28 @@ function VolumeChart({ filters, onPickBucket, onPickDist }) {
             </span>
           ))}
         </div>
-        <div className="chart__area" role="group" aria-label={`Articles by ${gran} — select a bar to filter`}>
+        <div
+          className="chart__area"
+          ref={areaRef}
+          role="group"
+          aria-label={`Articles by ${gran} — select a bar to filter`}
+          onPointerDown={brushDown}
+          onPointerMove={brushMove}
+          onPointerUp={brushUp}
+          onPointerCancel={() => setDrag(null)}
+          onPointerLeave={() => setHover(null)}
+        >
           {ticks.slice(1).map((t) => (
             <div className="chart__grid" key={t} style={{ bottom: `${(t / top) * 100}%` }} />
           ))}
           <div className="chart__bars">
-            {buckets.map((b) => (
+            {buckets.map((b, i) => (
               <button
                 key={b.start}
                 className="chart__col"
-                aria-pressed={!!isSel(b)}
+                aria-pressed={lit(b, i)}
                 disabled={b.count === 0}
-                onClick={() => onPickBucket(isSel(b) ? null : { start: b.start, end: b.end, label: b.label })}
+                onClick={() => pick(b)}
                 title={`${b.label}: ${b.count} article${b.count === 1 ? '' : 's'}`}
                 aria-label={`${b.label}: ${b.count} article${b.count === 1 ? '' : 's'}`}
               >
@@ -175,6 +428,33 @@ function VolumeChart({ filters, onPickBucket, onPickDist }) {
           {!single && <span>{to}</span>}
         </div>
       </div>
+      {alt && (brush || sel) && (
+        <div className="chart__hint" aria-live="polite">
+          {hovered ? (
+            <span>
+              <strong>{hovered.label}</strong> · {hovered.count} article{hovered.count === 1 ? '' : 's'}
+            </span>
+          ) : sel ? (
+            <>
+              <span>
+                <strong>{sel.label}</strong> · {selCount} article{selCount === 1 ? '' : 's'}
+              </span>
+              <button
+                className="chart__clear"
+                onClick={() => {
+                  setAnchor(null)
+                  onPickBucket(null)
+                }}
+                aria-label="Clear date selection"
+              >
+                <X size={12} weight="bold" />
+              </button>
+            </>
+          ) : (
+            <span>Drag across the bars to pick a span</span>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -209,7 +489,27 @@ function CheckItem({ label, count, state, onToggle, onExclude }) {
   )
 }
 
-function FacetGroup({ facet, filters, setFacetValue }) {
+// "Or and version": match any (or) / all (and) of the selected values. Figma `or-and` row.
+function OrAnd({ name, value, onChange }) {
+  return (
+    <div className="orand" role="radiogroup" aria-label={`${name}: match`}>
+      {['or', 'and'].map((m) => (
+        <button
+          key={m}
+          className="orand__opt"
+          role="radio"
+          aria-checked={value === m}
+          onClick={() => onChange(m)}
+        >
+          <span className={`radio${value === m ? ' radio--on' : ''}`} />
+          <span>{m}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function FacetGroup({ facet, filters, setFacetValue, orAnd, setFacetMode }) {
   const [collapsed, setCollapsed] = useState(false)
   const [expanded, setExpanded] = useState(false)
   const [q, setQ] = useState('')
@@ -239,6 +539,13 @@ function FacetGroup({ facet, filters, setFacetValue }) {
           aria-label={facet.placeholder}
         />
       </label>
+      {orAnd && OR_AND_FACETS.includes(facet.key) && (
+        <OrAnd
+          name={facet.title}
+          value={filters.facetModes?.[facet.key] || 'or'}
+          onChange={(m) => setFacetMode(facet.key, m)}
+        />
+      )}
       <div>
         {shown.map((o) => {
           const s = selection[o] || 'off'
@@ -382,7 +689,7 @@ function ExportMenu({ filters }) {
   )
 }
 
-export default function FilterPanel({ filters, dirty, setMedia, setRange, setBucket, setDist, setFacetValue, onReset, onApply, onClose }) {
+export default function FilterPanel({ filters, dirty, setMedia, setRange, setBucket, setDist, setFacetValue, orAnd, dateAlt, setFacetMode, onReset, onApply, onClose }) {
   const [collapsed, setCollapsed] = useState({})
   const [sheetFull, setSheetFull] = useState(false) // phones: scrolling the sheet expands it to full height
   const [rangeExpanded, setRangeExpanded] = useState(false)
@@ -418,6 +725,30 @@ export default function FilterPanel({ filters, dirty, setMedia, setRange, setBuc
           <RadioList options={MEDIA_TYPES} value={filters.media} onChange={setMedia} counts={mediaCounts} />
         </Group>
 
+        {dateAlt ? (
+          <Group title="Date" collapsed={collapsed.range} onToggle={() => toggle('range')}>
+            {dateAlt === 'date-alt-2' ? (
+              <div className="dcard">
+                <RangeSegments value={filters.range} onChange={setRange} />
+                <VolumeChart filters={filters} onPickBucket={setBucket} onPickDist={setDist} alt="span" />
+              </div>
+            ) : dateAlt === 'date-alt-3' ? (
+              <>
+                <CustomRange filters={filters} setRange={setRange} setDist={setDist} setBucket={setBucket} />
+                <VolumeChart filters={filters} onPickBucket={setBucket} onPickDist={setDist} alt="span" />
+              </>
+            ) : (
+              <VolumeChart
+                filters={filters}
+                onPickBucket={setBucket}
+                onPickDist={setDist}
+                onPickRange={setRange}
+                alt="brush"
+              />
+            )}
+          </Group>
+        ) : (
+          <>
         <Group title="Date Range" collapsed={collapsed.range} onToggle={() => toggle('range')}>
           <RadioList
             options={rangesShown ? DATE_RANGES : DATE_RANGES.slice(0, VISIBLE_RANGES)}
@@ -433,8 +764,18 @@ export default function FilterPanel({ filters, dirty, setMedia, setRange, setBuc
           <VolumeChart filters={filters} onPickBucket={setBucket} onPickDist={setDist} />
         </Group>
 
+          </>
+        )}
+
         {FACETS.map((f) => (
-          <FacetGroup key={f.key} facet={f} filters={filters} setFacetValue={setFacetValue} />
+          <FacetGroup
+            key={f.key}
+            facet={f}
+            filters={filters}
+            setFacetValue={setFacetValue}
+            orAnd={orAnd}
+            setFacetMode={setFacetMode}
+          />
         ))}
       </div>
       <div className="filters__actions">

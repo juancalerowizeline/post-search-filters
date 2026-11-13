@@ -284,12 +284,18 @@ export function inRange(article, rangeId) {
   return t >= startOfToday - (range.days - 1) * 86400000
 }
 
-function matchesFacet(article, key, selection) {
+// "Or and version": these groups get an or / and radio (or = any selected value, and = all of them)
+export const OR_AND_FACETS = ['source', 'company', 'industry', 'region', 'subject']
+
+function matchesFacet(article, key, selection, mode) {
   const entries = Object.entries(selection || {})
   const inc = entries.filter(([, s]) => s === 'in').map(([v]) => v)
   const exc = entries.filter(([, s]) => s === 'out').map(([v]) => v)
   const vals = valuesOf(article, key)
-  if (inc.length && !vals.some((v) => inc.includes(v))) return false
+  if (inc.length) {
+    const ok = mode === 'and' ? inc.every((v) => vals.includes(v)) : vals.some((v) => inc.includes(v))
+    if (!ok) return false
+  }
   if (exc.length && vals.some((v) => exc.includes(v))) return false
   return true
 }
@@ -311,7 +317,7 @@ export function applyFilters(articles, filters, skip) {
     if (q && !(a.title + ' ' + a.body).toLowerCase().includes(q)) return false
     for (const f of FACETS) {
       if (skips.includes(f.key)) continue
-      if (!matchesFacet(a, f.key, filters.facets[f.key])) return false
+      if (!matchesFacet(a, f.key, filters.facets[f.key], filters.facetModes?.[f.key])) return false
     }
     return true
   })

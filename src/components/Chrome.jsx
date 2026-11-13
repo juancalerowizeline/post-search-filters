@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import {
   House,
   MagnifyingGlass,
@@ -12,6 +12,7 @@ import {
   Bell,
   CirclesFour,
   Gear,
+  Check,
   List,
   X,
   BookBookmark,
@@ -24,6 +25,18 @@ import {
   ClockCounterClockwise,
 } from '@phosphor-icons/react'
 import logo from '../assets/dow-jones.svg'
+
+// Links in the gear (Settings) dropdown: the default prototype and its new versions.
+// Versions are the same app opened with ?version=<id>; "default" has no parameter.
+// `sep` draws a separator above the item: Default | date versions | or / and
+const PROTOTYPE_VERSIONS = [
+  { id: 'default', label: 'Default', href: './' },
+  { id: 'date-alt-1', label: 'Date alternative 1 · Brush', href: '?version=date-alt-1', sep: true },
+  { id: 'date-alt-2', label: 'Date alternative 2 · Tabs', href: '?version=date-alt-2' },
+  { id: 'date-alt-3', label: 'Date alternative 3 · Custom', href: '?version=date-alt-3' },
+  { id: 'or-and', label: 'Or and version', href: '?version=or-and', sep: true },
+]
+const CURRENT_VERSION = new URLSearchParams(window.location.search).get('version') || 'default'
 
 const SEARCH_CHIPS = [
   { id: 'source', label: 'All Source', icon: Globe },
@@ -59,7 +72,7 @@ function SearchPanel({ query, onQuery, chips, onRemoveChip, onReset, onOpenFilte
   return (
     <div className="search-panel" role="dialog" aria-label="Search">
       <div className="search-panel__top">
-        <MagnifyingGlass size={20} className="icon search-panel__glass" />
+        <MagnifyingGlass size={24} className="icon search-panel__glass" />
         <input
           ref={inputRef}
           value={query}
@@ -155,6 +168,20 @@ export function Header({ onMenu, chips, onRemoveChip, onReset, onOpenFilters }) 
   // typing is local for now: it does not filter or search anything
   const [query, onQuery] = useState('')
   const wrapRef = useRef(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const settingsRef = useRef(null)
+
+  useEffect(() => {
+    if (!settingsOpen) return
+    const onDown = (e) => !settingsRef.current?.contains(e.target) && setSettingsOpen(false)
+    const onKey = (e) => e.key === 'Escape' && setSettingsOpen(false)
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [settingsOpen])
 
   useEffect(() => {
     if (!panelOpen) return
@@ -222,9 +249,36 @@ export function Header({ onMenu, chips, onRemoveChip, onReset, onOpenFilters }) 
         <button className="icon-btn icon-btn--wide" aria-label="App suite">
           <CirclesFour size={24} />
         </button>
-        <button className="icon-btn icon-btn--wide" aria-label="Settings">
-          <Gear size={24} />
-        </button>
+        <div className="settings icon-btn--wide" ref={settingsRef}>
+          <button
+            className="icon-btn"
+            aria-label="Settings"
+            aria-haspopup="menu"
+            aria-expanded={settingsOpen}
+            onClick={() => setSettingsOpen((o) => !o)}
+          >
+            <Gear size={24} />
+          </button>
+          {settingsOpen && (
+            <div className="settings__menu" role="menu" aria-label="Prototype versions">
+              {PROTOTYPE_VERSIONS.map((v) => (
+                <Fragment key={v.id}>
+                  {v.sep && <div className="settings__sep" role="separator" />}
+                <a
+                  className="settings__item"
+                  role="menuitem"
+                  href={v.href}
+                  aria-current={v.id === CURRENT_VERSION ? 'true' : undefined}
+                  onClick={() => setSettingsOpen(false)}
+                >
+                  {v.label}
+                  {v.id === CURRENT_VERSION && <Check size={16} className="settings__check" />}
+                </a>
+                </Fragment>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </header>
   )
