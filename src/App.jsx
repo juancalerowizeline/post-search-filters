@@ -6,7 +6,7 @@ import { Head, SmartSummary, Related, ResultsList, buildChips } from './componen
 
 // Panel filters (edited as a draft, committed with "Apply filters").
 // The keyword query lives in the header and filters live.
-const DEFAULT_FILTERS = { media: 'All', range: '6m', dist: null, bucket: null, facets: {}, facetModes: {} }
+const DEFAULT_FILTERS = { media: 'All', enterpriseAI: false, range: '6m', dist: null, bucket: null, facets: {}, facetModes: {} }
 // Gear menu → "Or and version": same app with an or / and radio on some filter groups
 const OR_AND = new URLSearchParams(window.location.search).get('version') === 'or-and'
 // Gear menu → date alternatives: 'date-alt' (click-click span), 'date-alt-1' (brush), '-2' (segmented card), '-3' (custom range)
@@ -19,6 +19,7 @@ const PHONE = '(max-width: 600px)'
 const snapshot = (f) =>
   JSON.stringify({
     media: f.media,
+    enterpriseAI: !!f.enterpriseAI,
     range: f.range,
     dist: f.dist ?? null,
     bucket: f.bucket ? [f.bucket.start, f.bucket.end] : null,
@@ -95,6 +96,7 @@ export default function App() {
   const dirty = snapshot(draft) !== snapshot(DEFAULT_FILTERS) || snapshot(draft) !== snapshot(applied)
 
   const setMedia = (media) => setDraft((f) => ({ ...f, media }))
+  const setEnterpriseAI = (enterpriseAI) => setDraft((f) => ({ ...f, enterpriseAI }))
   // Changing the Date Range changes the bars' granularity, so a previously picked bar no longer applies
   const setRange = (range) => setDraft((f) => ({ ...f, range, dist: null, bucket: null }))
   const setDist = (dist) => setDraft((f) => ({ ...f, dist, bucket: null }))
@@ -109,6 +111,7 @@ export default function App() {
       if (c.kind === 'range') return { ...f, range: null, dist: null, bucket: null }
       if (c.kind === 'bucket') return { ...f, bucket: null }
       if (c.kind === 'media') return { ...f, media: 'All' }
+      if (c.kind === 'enterpriseAI') return { ...f, enterpriseAI: false }
       return withFacet(f, c.facet, c.value, 'off')
     }
     if (c.kind === 'query') return setQuery('')
@@ -153,6 +156,7 @@ export default function App() {
                 filters={{ ...draft, query }}
                 dirty={dirty}
                 setMedia={setMedia}
+                setEnterpriseAI={setEnterpriseAI}
                 setRange={setRange}
                 setDist={setDist}
                 setBucket={setBucket}

@@ -263,10 +263,12 @@ const SAMPLE_ARTICLES = [
 
 // 10 headlines from the Figma design + generated sample content (~3 years, newest first)
 // so the paginator and every filter have enough to work with.
+// `enterpriseAI` = eligible for enterprise AI use; sample flag (~60%) derived from the id so it is stable
+const isEnterpriseAI = (id) => (id * 2654435761) % 10 < 6
 export const ARTICLES = [
   ...SAMPLE_ARTICLES,
   ...generateArticles({ recent: 58, older: 192, startId: SAMPLE_ARTICLES.length + 1, today: NOW }),
-]
+].map((a) => ({ ...a, enterpriseAI: isEnterpriseAI(a.id) }))
 
 // ---- filtering helpers ----------------------------------------------------
 
@@ -301,9 +303,9 @@ function matchesFacet(article, key, selection, mode) {
 }
 
 /**
- * filters = { media, range, bucket, query, facets: { [facetKey]: { [value]: 'in' | 'out' } } }
+ * filters = { media, range, bucket, query, enterpriseAI, facets: { [facetKey]: { [value]: 'in' | 'out' } } }
  * `bucket` = { start, end, label } (ISO days, inclusive) — the bar picked in "Volume by date".
- * `skip` (string or array) ignores dimensions ('media' | 'range' | 'bucket' | facetKey)
+ * `skip` (string or array) ignores dimensions ('media' | 'range' | 'bucket' | 'enterpriseAI' | facetKey)
  * to compute facet counts / chart data.
  */
 export function applyFilters(articles, filters, skip) {
@@ -313,6 +315,7 @@ export function applyFilters(articles, filters, skip) {
   return articles.filter((a) => {
     if (!skips.includes('media') && filters.media !== 'All' && a.media !== filters.media) return false
     if (!skips.includes('range') && !inRange(a, filters.range)) return false
+    if (!skips.includes('enterpriseAI') && filters.enterpriseAI && !a.enterpriseAI) return false
     if (!skips.includes('bucket') && b && (a.date < b.start || a.date > b.end)) return false
     if (q && !(a.title + ' ' + a.body).toLowerCase().includes(q)) return false
     for (const f of FACETS) {

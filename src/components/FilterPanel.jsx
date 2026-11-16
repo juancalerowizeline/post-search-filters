@@ -132,6 +132,18 @@ function CustomRange({ filters, setRange, setDist, setBucket }) {
   )
 }
 
+// Figma `Switch (Web)`, small: one on / off setting
+function SwitchItem({ label, checked, onChange }) {
+  return (
+    <div className="fswitch">
+      <button className="switch" role="switch" aria-checked={checked} onClick={() => onChange(!checked)}>
+        <span className="switch__track" />
+        <span className="switch__label">{label}</span>
+      </button>
+    </div>
+  )
+}
+
 function RadioList({ options, value, onChange, counts }) {
   return (
     <div role="radiogroup">
@@ -689,7 +701,7 @@ function ExportMenu({ filters }) {
   )
 }
 
-export default function FilterPanel({ filters, dirty, setMedia, setRange, setBucket, setDist, setFacetValue, orAnd, dateAlt, setFacetMode, onReset, onApply, onClose }) {
+export default function FilterPanel({ filters, dirty, setMedia, setEnterpriseAI, setRange, setBucket, setDist, setFacetValue, orAnd, dateAlt, setFacetMode, onReset, onApply, onClose }) {
   const [collapsed, setCollapsed] = useState({})
   const [sheetFull, setSheetFull] = useState(false) // phones: scrolling the sheet expands it to full height
   const [rangeExpanded, setRangeExpanded] = useState(false)
@@ -723,6 +735,14 @@ export default function FilterPanel({ filters, dirty, setMedia, setRange, setBuc
 
         <Group title="Media Types" collapsed={collapsed.media} onToggle={() => toggle('media')}>
           <RadioList options={MEDIA_TYPES} value={filters.media} onChange={setMedia} counts={mediaCounts} />
+        </Group>
+
+        <Group title="Enterprise AI Eligible" collapsed={collapsed.enterprise} onToggle={() => toggle('enterprise')}>
+          <SwitchItem
+            label="Only enterprise AI eligible articles"
+            checked={!!filters.enterpriseAI}
+            onChange={setEnterpriseAI}
+          />
         </Group>
 
         {dateAlt ? (

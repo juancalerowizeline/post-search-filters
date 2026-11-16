@@ -52,7 +52,7 @@ function TitleBlock() {
   )
 }
 
-const GROUP_LABELS = { range: 'Date Range', bucket: 'Date', media: 'Media Types', query: 'Keyword' }
+const GROUP_LABELS = { range: 'Date Range', bucket: 'Date', media: 'Media Types', enterpriseAI: 'Enterprise AI Eligible', query: 'Keyword' }
 
 // Applied chips grouped by the filter they come from, in order of first appearance
 function groupChips(chips) {
@@ -578,6 +578,7 @@ export function buildChips(filters) {
   }
   if (filters.bucket) chips.push({ id: 'bucket', kind: 'bucket', label: filters.bucket.label })
   if (filters.media !== 'All') chips.push({ id: 'media', kind: 'media', label: filters.media })
+  if (filters.enterpriseAI) chips.push({ id: 'enterpriseAI', kind: 'enterpriseAI', label: 'Enterprise AI Eligible' })
   for (const f of FACETS) {
     for (const [value, state] of Object.entries(filters.facets[f.key] || {})) {
       if (state === 'off') continue
