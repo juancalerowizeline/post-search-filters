@@ -24,7 +24,7 @@ import {
   Play,
 } from '@phosphor-icons/react'
 import { DATE_RANGES, FACETS, formatDate, GMT_TIME } from '../data'
-import logo from '../assets/dow-jones.svg'
+import logo from '../assets/example-inc.svg'
 import { SidebarSliderIn, SidebarSliderOut } from './SidebarIcons'
 
 const PAGE_SIZES = [10, 25, 50]
@@ -335,7 +335,7 @@ function ArticleViewer({ article: a, onClose }) {
     <article className="viewer">
       <header className="viewer__header">
         <div className="viewer__bar">
-          <img src={logo} alt="Dow Jones" className="viewer__logo" />
+          <img src={logo} alt="Example Inc." className="viewer__logo" />
           <div className="viewer__actions">
             <button className="icon-btn icon-btn--sm" aria-label="Open in a new tab">
               <ArrowSquareOut size={20} />
@@ -399,8 +399,8 @@ function ArticleViewer({ article: a, onClose }) {
 
         <footer className="viewer__copy">
           <hr />
-          <span>Dow Jones &amp; Company, Inc.</span>
-          <span>WP-DJ-{String(a.id).padStart(10, '0')}</span>
+          <span>Example Inc.</span>
+          <span>WP-EX-{String(a.id).padStart(10, '0')}</span>
         </footer>
       </div>
     </article>

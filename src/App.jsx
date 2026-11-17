@@ -184,7 +184,7 @@ export default function App() {
             </div>
           </div>
           <footer className="footer">
-            © 2025 Dow Jones All rights reserved
+            © 2025 Example Inc. All rights reserved
             {['Terms of Use', 'Privacy Notice', 'Cookie Notice', 'Accessibility', 'Send Feedback'].map((l) => (
               <span key={l}>
                 {' • '}

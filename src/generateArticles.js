@@ -7,7 +7,7 @@
 const SOURCES = [
   { name: 'Bloomberg', w: 22, media: 0.8 },
   { name: 'The Wall Street Journal', w: 20, media: 0.85 },
-  { name: 'Dow Jones Newswires', w: 17, media: 0.35 },
+  { name: 'Example Inc. Newswires', w: 17, media: 0.35 },
   { name: 'Reuters', w: 17, media: 0.3 },
   { name: 'Financial Times', w: 10, media: 0.85 },
   { name: 'Apple Daily Taiwan (Chinese language translation)', w: 5, media: 0.3, language: 'Chinese', region: 'Asia Pacific' },

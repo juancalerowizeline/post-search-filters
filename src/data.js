@@ -31,7 +31,7 @@ export const FACETS = [
     options: [
       'Bloomberg',
       'The Wall Street Journal',
-      'Dow Jones Newswires',
+      'Example Inc. Newswires',
       'Apple Daily Taiwan (Chinese language translation)',
       'Reuters',
       'Financial Times',
@@ -102,7 +102,7 @@ export const VISIBLE_OPTIONS = 5
 const SRC = {
   bloomberg: 'Bloomberg',
   wsj: 'The Wall Street Journal',
-  djn: 'Dow Jones Newswires',
+  djn: 'Example Inc. Newswires',
   taiwan: 'Apple Daily Taiwan (Chinese language translation)',
   reuters: 'Reuters',
 }

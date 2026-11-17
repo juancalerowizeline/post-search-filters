@@ -24,7 +24,7 @@ import {
   FunnelSimple,
   ClockCounterClockwise,
 } from '@phosphor-icons/react'
-import logo from '../assets/dow-jones.svg'
+import logo from '../assets/example-inc.svg'
 
 // Links in the gear (Settings) dropdown: the default prototype and its new versions.
 // Versions are the same app opened with ?version=<id>; "default" has no parameter.
@@ -78,7 +78,7 @@ function SearchPanel({ query, onQuery, chips, onRemoveChip, onReset, onOpenFilte
           value={query}
           onChange={(e) => onQuery(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && onClose()}
-          placeholder="Search Dow Jones or type a Company, Industry, Region, Sources, Subject"
+          placeholder="Search Example Inc. or type a Company, Industry, Region, Sources, Subject"
           aria-label="Search"
         />
         <button className="icon-btn search-panel__clear" aria-label="Clear search" onClick={() => onQuery('')}>
@@ -201,7 +201,7 @@ export function Header({ onMenu, chips, onRemoveChip, onReset, onOpenFilters }) 
         <List size={24} />
       </button>
       <div className="header__logo">
-        <img src={logo} alt="Dow Jones" />
+        <img src={logo} alt="Example Inc." />
       </div>
       {panelOpen && <div className="search-overlay" aria-hidden />}
       <div className="search" ref={wrapRef}>
@@ -212,7 +212,7 @@ export function Header({ onMenu, chips, onRemoveChip, onReset, onOpenFilters }) 
             value={query}
             onChange={(e) => onQuery(e.target.value)}
             onFocus={() => setPanelOpen(true)}
-            placeholder="Search Dow Jones or type a Company, Industry, Region, Sources, Subject"
+            placeholder="Search Example Inc. or type a Company, Industry, Region, Sources, Subject"
             aria-label="Search"
           />
         </label>
