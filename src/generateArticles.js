@@ -10,7 +10,7 @@ const SOURCES = [
   { name: 'Example Inc. Newswires', w: 17, media: 0.35 },
   { name: 'Reuters', w: 17, media: 0.3 },
   { name: 'Financial Times', w: 10, media: 0.85 },
-  { name: '台灣蘋果日報', w: 5, media: 0.3, language: 'Chinese', region: 'Asia Pacific' },
+  { name: 'Apple Daily Taiwan', w: 5, media: 0.3, language: 'Chinese', region: 'Asia Pacific' },
   { name: 'Les Echos (French language translation)', w: 3, media: 0.6, language: 'French', region: 'Europe' },
   { name: 'Handelsblatt (German language translation)', w: 3, media: 0.6, language: 'German', region: 'Europe' },
   { name: 'Expansión (Spanish language translation)', w: 3, media: 0.5, language: 'Spanish', region: 'South America' },

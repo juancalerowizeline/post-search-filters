@@ -29,6 +29,9 @@ import { SidebarSliderIn, SidebarSliderOut } from './SidebarIcons'
 
 const PAGE_SIZES = [10, 25, 50]
 const cleanSource = (name) => name.replace(/ \(.* language translation\)/, '')
+// article cards/viewer show some sources under their local name; filters and chips keep the English one
+const LOCAL_SOURCE = { 'Apple Daily Taiwan': '台灣蘋果日報' }
+const articleSource = (name) => LOCAL_SOURCE[cleanSource(name)] || cleanSource(name)
 
 const PILL_ROW = 24
 const PILL_GAP = 8
@@ -349,7 +352,7 @@ function ArticleViewer({ article: a, onClose }) {
       </header>
 
       <div className="viewer__content">
-        <div className="viewer__source">{cleanSource(a.source)}</div>
+        <div className="viewer__source">{articleSource(a.source)}</div>
         <div className="viewer__headline">
           <div className="viewer__tags">
             {[a.topic, a.media, a.region[0]].map((t) => (
@@ -364,7 +367,7 @@ function ArticleViewer({ article: a, onClose }) {
             <span>By John Doe</span>
             <span>
               <a href="#source" onClick={(e) => e.preventDefault()}>
-                {cleanSource(a.source)},
+                {articleSource(a.source)},
               </a>{' '}
               {a.language[0]}, {words.toLocaleString('en-US')} words, {longDate}
             </span>
@@ -455,7 +458,7 @@ export function ResultsList({ articles, onReset, compact, onCompact }) {
               <div className="card__meta">
                 <span className="card__topic">{a.topic}</span>
                 <a className="card__source" href="#source" onClick={(e) => e.preventDefault()}>
-                  <i /> {cleanSource(a.source)}
+                  <i /> {articleSource(a.source)}
                 </a>
                 <span>{formatDate(a.date)}</span>
                 <span>{GMT_TIME}</span>
