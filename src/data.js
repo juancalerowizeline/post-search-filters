@@ -32,7 +32,7 @@ export const FACETS = [
       'Bloomberg',
       'The Wall Street Journal',
       'Example Inc. Newswires',
-      'Apple Daily Taiwan (Chinese language translation)',
+      'Apple Daily Taiwan',
       'Reuters',
       'Financial Times',
       'Les Echos (French language translation)',
@@ -103,7 +103,7 @@ const SRC = {
   bloomberg: 'Bloomberg',
   wsj: 'The Wall Street Journal',
   djn: 'Example Inc. Newswires',
-  taiwan: 'Apple Daily Taiwan (Chinese language translation)',
+  taiwan: 'Apple Daily Taiwan',
   reuters: 'Reuters',
 }
 

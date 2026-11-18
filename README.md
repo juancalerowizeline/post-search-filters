@@ -1,6 +1,6 @@
 # Post Search Filters
 
-Interactive prototype of a **Search Builder + Smart Summary** results page.
+Interactive prototype of a **Advanced Search + AI Summary** results page.
 The filters in the left panel show/hide the headlines in the results list.
 
 Design source: Figma → `Post-Search-Filters (WIP)`, node `385:133901`.

@@ -305,7 +305,7 @@ export function LeftNav({ collapsed, onToggle }) {
     <>
       <nav className={`nav${collapsed ? ' nav--collapsed' : ''}`} aria-label="Main">
         <Item icon={House} label="Home" />
-        <Item icon={MagnifyingGlass} label="Search Builder" />
+        <Item icon={MagnifyingGlass} label="Advanced Search" />
         <Item icon={StarFour} label="AI Assistant" />
         <Item icon={BookmarkSimple} label="Saved" />
         <Item icon={Star} label="Interest" chev />

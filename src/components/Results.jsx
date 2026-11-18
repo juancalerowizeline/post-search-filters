@@ -52,7 +52,7 @@ function TitleBlock() {
   )
 }
 
-const GROUP_LABELS = { range: 'Date Range', bucket: 'Date', media: 'Media Types', enterpriseAI: 'Enterprise AI Eligible', query: 'Keyword' }
+const GROUP_LABELS = { range: 'Date Range', bucket: 'Date', media: 'Media Types', enterpriseAI: 'Suitable for AI', query: 'Keyword' }
 
 // Applied chips grouped by the filter they come from, in order of first appearance
 function groupChips(chips) {
@@ -246,10 +246,10 @@ function HeadClassic({ showFilters, onToggleFilters, onRemoveChip, chips }) {
 export function SmartSummary() {
   const [open, setOpen] = useState(false)
   return (
-    <section className="summary" aria-label="Smart Summary">
+    <section className="summary" aria-label="AI Summary">
       <div className="summary__head">
         <div className="summary__title">
-          <StarFour size={16} weight="fill" /> Smart Summary
+          <StarFour size={16} weight="fill" /> AI Summary
         </div>
         <button className="link-btn">
           Disclaimer <WarningCircle size={16} />
@@ -578,7 +578,7 @@ export function buildChips(filters) {
   }
   if (filters.bucket) chips.push({ id: 'bucket', kind: 'bucket', label: filters.bucket.label })
   if (filters.media !== 'All') chips.push({ id: 'media', kind: 'media', label: filters.media })
-  if (filters.enterpriseAI) chips.push({ id: 'enterpriseAI', kind: 'enterpriseAI', label: 'Enterprise AI Eligible' })
+  if (filters.enterpriseAI) chips.push({ id: 'enterpriseAI', kind: 'enterpriseAI', label: 'Suitable for AI' })
   for (const f of FACETS) {
     for (const [value, state] of Object.entries(filters.facets[f.key] || {})) {
       if (state === 'off') continue

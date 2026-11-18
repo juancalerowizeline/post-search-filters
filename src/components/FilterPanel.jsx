@@ -737,9 +737,9 @@ export default function FilterPanel({ filters, dirty, setMedia, setEnterpriseAI,
           <RadioList options={MEDIA_TYPES} value={filters.media} onChange={setMedia} counts={mediaCounts} />
         </Group>
 
-        <Group title="Enterprise AI Eligible" collapsed={collapsed.enterprise} onToggle={() => toggle('enterprise')}>
+        <Group title="Suitable for AI" collapsed={collapsed.enterprise} onToggle={() => toggle('enterprise')}>
           <SwitchItem
-            label="Only enterprise AI eligible articles"
+            label="Only articles suitable for AI"
             checked={!!filters.enterpriseAI}
             onChange={setEnterpriseAI}
           />
