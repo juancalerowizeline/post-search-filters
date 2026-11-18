@@ -1,14 +1,9 @@
-# Factiva – Post Search Filters
+# Post Search Filters
 
-Interactive prototype of the **DJ+ Search Builder + Smart Summary** results page (Factiva, DJ Platform theme).
+Interactive prototype of a **Search Builder + Smart Summary** results page.
 The filters in the left panel show/hide the headlines in the results list.
 
 Design source: Figma → `Post-Search-Filters (WIP)`, node `385:133901`.
-
-## Links
-
-- **Live prototype:** https://github.dowjones.net/pages/diegocaleroj/post-search-filters/
-- **Documentation (Confluence):** [Post-search Filters Sync](https://dowjones.atlassian.net/wiki/spaces/FAC2/pages/7031816380/Post-search+Filters+Sync)
 
 ## Run locally
 
@@ -32,7 +27,7 @@ npm run build    # production build in dist/
 
 ## Deploy to GitHub Pages
 
-Pages is served from the `/docs` folder of `main`. Before every push run:
+Pages is served from the `/docs` folder. Before every push run:
 
 ```bash
 npm run build:pages   # builds into docs/ (base './', works under any repo path)

@@ -674,7 +674,7 @@ function ExportMenu({ filters }) {
   }, [open])
 
   const pick = (item) => {
-    downloadCsv(exportRows(item.id, filters), `factiva-${item.label.toLowerCase().replace(/\s+/g, '-')}.csv`)
+    downloadCsv(exportRows(item.id, filters), `${item.label.toLowerCase().replace(/\s+/g, '-')}.csv`)
     setOpen(false)
   }
 

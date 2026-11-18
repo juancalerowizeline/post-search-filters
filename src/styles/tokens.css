@@ -1,5 +1,5 @@
-/* DJ Platform (Factiva) tokens — INDEX / DEF-DJP, light mode.
-   Values resolved per the DJ Platform mode (blue primary, Inter), not the teal fallbacks. */
+/* Design tokens, light mode.
+   Values resolved (blue primary, Inter), not the teal fallbacks. */
 :root {
   /* surface */
   --surface-foreground: #ffffff;
@@ -24,7 +24,7 @@
   --primary-high: #0a5adb;
   --input-unselected: #ceced4;
 
-  /* dataviz (DJ Platform palette #5 Dark Sapphire) */
+  /* dataviz (palette #5 Dark Sapphire) */
   --dataviz-1: #0071a7;
 
   /* space */
