@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { CaretUp, CaretDown, DownloadSimple, MagnifyingGlass, Prohibit, Check, Minus, X } from '@phosphor-icons/react'
+import { createPortal } from 'react-dom'
+import { CaretUp, CaretDown, DownloadSimple, CheckCircle, MagnifyingGlass, Prohibit, Check, Minus, X } from '@phosphor-icons/react'
 import {
   ARTICLES,
   DATE_RANGES,
@@ -657,8 +658,30 @@ function downloadCsv(rows, filename) {
   URL.revokeObjectURL(url)
 }
 
+function DownloadModal({ fileName, onClose }) {
+  const btnRef = useRef(null)
+  useEffect(() => {
+    btnRef.current?.focus()
+    const onKey = (e) => e.key === 'Escape' && onClose()
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+  return createPortal(
+    <div className="modal__overlay" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <CheckCircle size={32} weight="fill" className="modal__icon" aria-hidden="true" />
+        <h2 className="modal__title" id="modal-title">Download successful</h2>
+        <p className="modal__text">{fileName} has been downloaded.</p>
+        <button ref={btnRef} className="btn btn--solid" onClick={onClose}>Done</button>
+      </div>
+    </div>,
+    document.body
+  )
+}
+
 function ExportMenu({ filters }) {
   const [open, setOpen] = useState(false)
+  const [done, setDone] = useState(null)
   const ref = useRef(null)
 
   useEffect(() => {
@@ -674,8 +697,10 @@ function ExportMenu({ filters }) {
   }, [open])
 
   const pick = (item) => {
-    downloadCsv(exportRows(item.id, filters), `${item.label.toLowerCase().replace(/\s+/g, '-')}.csv`)
+    const fileName = `${item.label.toLowerCase().replace(/\s+/g, '-')}.csv`
+    downloadCsv(exportRows(item.id, filters), fileName)
     setOpen(false)
+    setDone(fileName)
   }
 
   return (
@@ -697,6 +722,7 @@ function ExportMenu({ filters }) {
           ))}
         </div>
       )}
+      {done && <DownloadModal fileName={done} onClose={() => setDone(null)} />}
     </div>
   )
 }
